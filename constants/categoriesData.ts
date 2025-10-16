@@ -45,6 +45,8 @@ export const productsByCategory = {
       name: "Chocolate Slice",
       image: require("../assets/products/Rectangle 3143 (4).png"),
       price: 4.99,
+      description: "Delicious chocolate slice with rich flavor.",
+      ingredients: ["Flour", "Sugar", "Cocoa", "Butter", "Eggs"],
     },
     {
       id: 4,

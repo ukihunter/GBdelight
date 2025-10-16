@@ -1,6 +1,7 @@
 import GoogleTextInput from "@/components/GoogleTextInput";
 import { icons } from "@/constants";
 import { useUser } from "@clerk/clerk-expo";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
 import React, { useRef, useState } from "react";
 import {
   Animated,
@@ -18,7 +19,12 @@ import {
   categories,
   productsByCategory,
 } from "../../../constants/categoriesData";
+type RootStackParamList = {
+  CakeDetails: { productId: number };
+};
+
 const Home = () => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const flatListRef = useRef<FlatList>(null);
   const [selectedCategory, setSelectedCategory] = useState<
     keyof typeof productsByCategory | null
@@ -217,6 +223,11 @@ const Home = () => {
                           elevation: 5,
                           alignItems: "center",
                         }}
+                        onPress={() =>
+                          navigation.navigate("CakeDetails", {
+                            productId: product.id,
+                          })
+                        }
                       >
                         <View>
                           <Image
