@@ -19,9 +19,12 @@ import {
   productsByCategory,
 } from "../../../constants/categoriesData";
 const Home = () => {
+  const flatListRef = useRef<FlatList>(null);
   const [selectedCategory, setSelectedCategory] = useState<
     keyof typeof productsByCategory | null
-  >(null);
+  >(
+    categories[0]?.key as keyof typeof productsByCategory // Set default to first category
+  );
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
   const handleDestinationPress = () => {
@@ -38,14 +41,18 @@ const Home = () => {
   const loading = false;
   return (
     <>
-      <StatusBar hidden />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="dark-content"
+      />
 
       <SafeAreaView style={{ flex: 1 }} className="bg-[#fcf1f1]">
         <Image
           source={require("../../../assets/icons/image.png")}
           style={{
             width: "100%",
-            height: 220,
+            height: "30%",
             resizeMode: "cover",
             zIndex: -1,
             position: "absolute",
@@ -60,7 +67,6 @@ const Home = () => {
               paddingLeft: 20,
               marginBottom: 60,
               fontWeight: "bold",
-              fontFamily: "JakartaBold",
             }}
           >
             Hello{" "}
@@ -102,17 +108,21 @@ const Home = () => {
             />
           </TouchableOpacity>
         </View>
+
         <FlatList
-          data={[]} // Provide an empty array if you only want to show the header for now
-          renderItem={null} // No items to render
+          ref={flatListRef}
+          data={[]}
+          renderItem={null}
           ListHeaderComponent={
             <>
-              <GoogleTextInput
-                icon={icons.search}
-                placeholder="Search for your cravings !!"
-                containerStyle="mx-3 bg-[#E7CCCC] mb-2 shadow-md shadow-neutral-300 "
-                handlePress={handleDestinationPress}
-              />
+              <View>
+                <GoogleTextInput
+                  icon={icons.search}
+                  placeholder="Search for your cravings !!"
+                  containerStyle="mx-3 bg-[#E7CCCC] mb-2 shadow-md shadow-neutral-300 "
+                  handlePress={handleDestinationPress}
+                />
+              </View>
 
               <View style={{ paddingHorizontal: 20 }}>
                 <Carousel
@@ -179,6 +189,7 @@ const Home = () => {
               </View>
 
               {/* Display products of the selected category */}
+
               {selectedCategory && productsByCategory[selectedCategory] && (
                 <View style={{ marginTop: 20 }}>
                   <Text className="text-base font-JakartaBold mb-2 ml-2">
@@ -207,22 +218,13 @@ const Home = () => {
                           alignItems: "center",
                         }}
                       >
-                        <View
-                          style={{
-                            backgroundColor: "#FDF2F2",
-                            borderRadius: 15,
-                            padding: 12,
-                            marginBottom: 12,
-                            width: "100%",
-                            alignItems: "center",
-                          }}
-                        >
+                        <View>
                           <Image
                             source={product.image}
                             style={{
-                              width: 70,
-                              height: 70,
-                              borderRadius: 10,
+                              width: 130,
+                              height: 130,
+                              borderRadius: 20,
                               resizeMode: "cover",
                             }}
                           />
@@ -260,7 +262,10 @@ const Home = () => {
                               fontFamily: "JakartaBold",
                             }}
                           >
-                            ${product.price ? product.price.toFixed(2) : "0.00"}
+                            $
+                            {"price" in product && product.price
+                              ? product.price.toFixed(2)
+                              : "0.00"}
                           </Text>
                         </View>
 
@@ -283,10 +288,48 @@ const Home = () => {
                             elevation: 3,
                           }}
                         >
-                          <Text style={{ fontSize: 16 }}>🤍</Text>
+                          <Image
+                            source={icons.heart}
+                            style={{
+                              width: 16,
+                              height: 16,
+                              tintColor: "brown",
+                            }}
+                          />
                         </TouchableOpacity>
                       </TouchableOpacity>
                     ))}
+                  </View>
+                  <View className="mb-40 mt-10">
+                    <TouchableOpacity
+                      onPress={() =>
+                        flatListRef.current?.scrollToOffset({
+                          offset: 0,
+                          animated: true,
+                        })
+                      }
+                      style={{
+                        alignSelf: "center",
+                        backgroundColor: "#fde8e8",
+                        borderRadius: 9999,
+
+                        paddingVertical: 5,
+                        paddingHorizontal: 24,
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 4,
+                        elevation: 3,
+                      }}
+                    >
+                      <View>
+                        <Image
+                          source={icons.bottomtoup}
+                          style={{ width: 30, height: 30 }}
+                          tintColor={"brown"}
+                        />
+                      </View>
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}

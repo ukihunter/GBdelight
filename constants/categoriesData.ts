@@ -37,25 +37,25 @@ export const productsByCategory = {
     {
       id: 2,
       name: "Chocolate Slice",
-      image: require("../assets/products/cake1.png"),
+      image: require("../assets/products/Rectangle 3143.png"),
       price: 4.99,
     },
     {
       id: 3,
       name: "Chocolate Slice",
-      image: require("../assets/products/cake1.png"),
+      image: require("../assets/products/Rectangle 3143 (4).png"),
       price: 4.99,
     },
     {
       id: 4,
       name: "Chocolate Slice",
-      image: require("../assets/products/cake1.png"),
+      image: require("../assets/products/Rectangle 3143 (2).png"),
       price: 4.99,
     },
     {
       id: 5,
       name: "Chocolate Slice",
-      image: require("../assets/products/cake1.png"),
+      image: require("../assets/products/Rectangle 3143 (3).png"),
       price: 4.99,
     },
     {
