@@ -2,7 +2,13 @@ import { icons } from "@/constants";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Image, ImageSourcePropType, View } from "react-native";
+import {
+  Image,
+  ImageSourcePropType,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSidebar } from "./SidebarProvider";
 const TabIcon = ({
   source,
   focused,
@@ -30,7 +36,40 @@ const TabIcon = ({
   </View>
 );
 
+const ProfileTabIcon = ({
+  source,
+  focused,
+  onPress,
+}: {
+  source: ImageSourcePropType;
+  focused: boolean;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity onPress={onPress}>
+    <View
+      className={`flex flex-row  items-center rounded-full jus ${
+        focused ? "bg-general-300" : ""
+      }`}
+    >
+      <View
+        className={`rounded-full w-12 h-12 items-center justify-center ${
+          focused ? "bg-[#ff728a]" : ""
+        }`}
+      >
+        <Image
+          source={source}
+          tintColor="white"
+          resizeMode="contain"
+          className="w-7 h-7"
+        />
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
 const Layout = () => {
+  const { openSidebar } = useSidebar();
+
   return (
     <Tabs
       screenOptions={{
@@ -104,8 +143,20 @@ const Layout = () => {
           title: "Profile",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} source={icons.profile} />
+            <ProfileTabIcon
+              focused={focused}
+              source={icons.profile}
+              onPress={openSidebar}
+            />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            // Prevent default action
+            e.preventDefault();
+            // Open sidebar instead
+            openSidebar();
+          },
         }}
       />
     </Tabs>
