@@ -2,6 +2,7 @@ import arrowDown from "@/assets/icons/arrow-down.png";
 import arrowUp from "@/assets/icons/arrow-up.png";
 import backArrow from "@/assets/icons/back-arrow.png";
 import bottomtoup from "@/assets/icons/bottomtoup.png";
+import cake from "@/assets/icons/cake.png";
 import cart from "@/assets/icons/cart.png";
 import chat from "@/assets/icons/chat.png";
 import checkmark from "@/assets/icons/check.png";
@@ -47,6 +48,7 @@ export const images = {
 };
 
 export const icons = {
+  cake,
   arrowDown,
   arrowUp,
   backArrow,

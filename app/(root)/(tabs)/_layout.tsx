@@ -1,4 +1,5 @@
 import { icons } from "@/constants";
+import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Image, ImageSourcePropType, View } from "react-native";
@@ -16,7 +17,7 @@ const TabIcon = ({
   >
     <View
       className={`rounded-full w-12 h-12 items-center justify-center ${
-        focused ? "bg-[#E195AB]" : ""
+        focused ? "bg-[#ff728a]" : ""
       }`}
     >
       <Image
@@ -33,11 +34,9 @@ const Layout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "white",
-        tabBarInactiveTintColor: "white",
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: "#1E1E1E",
+          backgroundColor: "transparent",
           borderRadius: 50,
           paddingBottom: 30,
           overflow: "hidden",
@@ -50,6 +49,22 @@ const Layout = () => {
           flexDirection: "row",
           position: "absolute",
         },
+        tabBarBackground: () => (
+          <View
+            style={{
+              flex: 1,
+              borderRadius: 50,
+              overflow: "hidden",
+            }}
+          >
+            <LinearGradient
+              colors={["#ff748c", "#ff8da1", "#ffc0cb"]}
+              style={{ flex: 1 }}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </View>
+        ),
       }}
     >
       <Tabs.Screen
@@ -63,9 +78,20 @@ const Layout = () => {
         }}
       />
       <Tabs.Screen
-        name="chat"
+        name="allcake"
         options={{
-          title: "Chat",
+          title: "allcake",
+          headerShown: false,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} source={icons.cake} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="aigen"
+        options={{
+          title: "AI Generator",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} source={icons.chat} />
@@ -79,16 +105,6 @@ const Layout = () => {
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} source={icons.profile} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="rides"
-        options={{
-          title: "Rides",
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} source={icons.list} />
           ),
         }}
       />
