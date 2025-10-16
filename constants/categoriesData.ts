@@ -37,13 +37,13 @@ export const productsByCategory = {
     {
       id: 2,
       name: "Chocolate Slice",
-      image: require("../assets/products/Rectangle 3143.png"),
+      image: require("../assets/products/cake3.jpg"),
       price: 4.99,
     },
     {
       id: 3,
-      name: "Chocolate Slice",
-      image: require("../assets/products/Rectangle 3143 (4).png"),
+      name: "Butterfly cake ",
+      image: require("../assets/products/cake3.jpg"),
       price: 4.99,
       description: "Delicious chocolate slice with rich flavor.",
       ingredients: ["Flour", "Sugar", "Cocoa", "Butter", "Eggs"],
@@ -51,13 +51,13 @@ export const productsByCategory = {
     {
       id: 4,
       name: "Chocolate Slice",
-      image: require("../assets/products/Rectangle 3143 (2).png"),
+      image: require("../assets/products/cake3.jpg"),
       price: 4.99,
     },
     {
       id: 5,
       name: "Chocolate Slice",
-      image: require("../assets/products/Rectangle 3143 (3).png"),
+      image: require("../assets/products/cake3.jpg"),
       price: 4.99,
     },
     {
@@ -81,7 +81,7 @@ export const productsByCategory = {
   ],
   cake: [
     {
-      id: 2,
+      id: 9,
       name: "Vanilla Cake",
       image: require("../assets/products/cake1.png"),
       price: 4.99,
@@ -90,7 +90,7 @@ export const productsByCategory = {
   ],
   cookies: [
     {
-      id: 3,
+      id: 10,
       name: "Choco Chip Cookie",
       image: require("../assets/products/cake1.png"),
     },
@@ -98,7 +98,7 @@ export const productsByCategory = {
   ],
   cupcake: [
     {
-      id: 4,
+      id: 11,
       name: "Strawberry Cupcake",
       image: require("../assets/products/cake1.png"),
     },

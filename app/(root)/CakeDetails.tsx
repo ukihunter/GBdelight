@@ -5,6 +5,8 @@ import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { productsByCategory } from "../../constants/categoriesData";
 
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
 type Product = {
   id: number;
   name: string;
@@ -14,9 +16,17 @@ type Product = {
   ingredients?: string[];
 };
 
+type RootStackParamList = {
+  CakeDetails: { productId: string; categoryKey: string };
+  // ...other routes
+};
+
 const CakeDetails = () => {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<
+      NativeStackNavigationProp<RootStackParamList, "CakeDetails">
+    >();
   const { productId, categoryKey } = route.params as {
     productId: string;
     categoryKey: string;
@@ -55,6 +65,8 @@ const CakeDetails = () => {
               width: "100%",
               height: 320,
               resizeMode: "cover",
+              borderBottomLeftRadius: 20,
+              borderBottomRightRadius: 20,
             }}
           />
           <TouchableOpacity
@@ -165,6 +177,73 @@ const CakeDetails = () => {
               Add to Cart
             </Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Other Products */}
+        <View style={{ marginTop: 20 }}>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "bold",
+              marginBottom: 8,
+              marginLeft: 24,
+              fontFamily: "JakartaBold",
+            }}
+          >
+            Similar Products
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 8, marginLeft: 24, marginBottom: 20 }}
+          >
+            {(
+              productsByCategory[
+                categoryKey as keyof typeof productsByCategory
+              ] ?? []
+            )
+              .filter((item) => item.id !== product.id)
+              .map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={{
+                    backgroundColor: "#fff",
+                    borderRadius: 20,
+                    padding: 10,
+                    marginRight: 12,
+                    marginBottom: 10,
+                    elevation: 3,
+                    alignItems: "center",
+                    width: 120,
+                  }}
+                  onPress={() =>
+                    navigation.navigate("CakeDetails", {
+                      productId: item.id.toString(),
+                      categoryKey,
+                    })
+                  }
+                >
+                  <Image
+                    source={item.image}
+                    style={{ width: 80, height: 80, borderRadius: 12 }}
+                  />
+                  <Text
+                    style={{
+                      marginTop: 8,
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                  <Text style={{ color: "#FDAAAA", fontWeight: "bold" }}>
+                    {"price" in item && typeof item.price === "number"
+                      ? `$${item.price.toFixed(2)}`
+                      : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
         </View>
       </ScrollView>
     </>

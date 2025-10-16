@@ -20,7 +20,10 @@ import {
   productsByCategory,
 } from "../../../constants/categoriesData";
 type RootStackParamList = {
-  CakeDetails: { productId: number };
+  CakeDetails: {
+    productId: number;
+    categoryKey: keyof typeof productsByCategory;
+  };
 };
 
 const Home = () => {
@@ -226,6 +229,7 @@ const Home = () => {
                         onPress={() =>
                           navigation.navigate("CakeDetails", {
                             productId: product.id,
+                            categoryKey: selectedCategory,
                           })
                         }
                       >
