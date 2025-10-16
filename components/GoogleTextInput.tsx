@@ -9,12 +9,10 @@ const GoogleTextInput = ({
   handlePress,
   placeholder,
 }: GoogleInputProps) => (
-  <View
-    className={`flex flex-row items-center justify-center relative z-50 rounded-full ${containerStyle} p-3`}
-  >
+  <View className={`flex flex-row  rounded-full ${containerStyle} p-3`}>
     <Image
       source={typeof icon === "string" ? { uri: icon } : icon}
-      className="w-6 h-6 p-3 mr-20"
+      className="w-6 h-6 ml-90 mr-3"
     />
     <Text>{placeholder}</Text>
   </View>

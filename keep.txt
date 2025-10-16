@@ -1,0 +1,49 @@
+
+ <Text className="text-l font-JakartaBold mt-2 ml-2 mb-2">
+                Category
+              </Text>
+              <View className="flex-row flex-wrap justify-between">
+                <TouchableOpacity
+                  className="bg-[#c07171] rounded-full p-4 shadow-black shadow-lg"
+                  activeOpacity={0.7}
+                  onPress={() => {}}
+                >
+                  <Image
+                    source={require("../../../assets/category/cake-slice.png")}
+                    style={{ width: 30, height: 30 }}
+                  />
+                </TouchableOpacity>
+                {/*cake*/}
+                <TouchableOpacity
+                  className="bg-[#c09171] rounded-full p-4"
+                  activeOpacity={0.7}
+                  onPress={() => {}}
+                >
+                  <Image
+                    source={require("../../../assets/category/cake.png")}
+                    style={{ width: 30, height: 30 }}
+                  />
+                </TouchableOpacity>
+                {/*cookies*/}
+                <TouchableOpacity
+                  className="bg-[#abc071] rounded-full p-4"
+                  activeOpacity={0.7}
+                  onPress={() => {}}
+                >
+                  <Image
+                    source={require("../../../assets/category/cookies.png")}
+                    style={{ width: 30, height: 30 }}
+                  />
+                </TouchableOpacity>
+                {/*cupcake*/}
+                <TouchableOpacity
+                  className="bg-[#c0ae71] rounded-full p-4"
+                  activeOpacity={0.7}
+                  onPress={() => {}}
+                >
+                  <Image
+                    source={require("../../../assets/category/muffin.png")}
+                    style={{ width: 30, height: 30 }}
+                  />
+                </TouchableOpacity>
+              </View>

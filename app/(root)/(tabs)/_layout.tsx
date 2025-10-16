@@ -16,7 +16,7 @@ const TabIcon = ({
   >
     <View
       className={`rounded-full w-12 h-12 items-center justify-center ${
-        focused ? "bg-orange-400" : ""
+        focused ? "bg-[#E195AB]" : ""
       }`}
     >
       <Image
