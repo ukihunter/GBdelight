@@ -140,10 +140,10 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
               </View>
 
               {/* Profile Section */}
-              <View className="items-center py-6 px-6 m-2 bg-slate-200 blur-sm rounded-lg">
+              <View className="items-center py-6 px-6 m-2 bg-[#F5BABB] blur-sm rounded-lg">
                 <View className=" justify-between items-center mb-3   flex-row">
                   <Image
-                    source={require("../../../assets/icons/profile.png")}
+                    source={{ uri: "https://avatar.iran.liara.run/public/boy" }}
                     className="w-16 h-16 rounded-full mr-10"
                   />
                   <View className="flex-1">
@@ -151,6 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                       style={{
                         color: "black",
                         fontSize: 18,
+                        fontWeight: "bold",
                         fontFamily: "JakartaBold",
                       }}
                     >
@@ -160,7 +161,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                       style={{
                         color: "black",
                         fontSize: 8,
-                        fontFamily: "JakartaRegular",
+                        fontFamily: "JakartaBold",
                       }}
                     >
                       {user?.emailAddresses
@@ -170,31 +171,102 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                   </View>
                 </View>
               </View>
-              <View className="px-6 pb-4 pt-2 items-center">
-                <View>
-                  <TouchableOpacity className="w-full flex-row justify-center items-center p-4">
-                    <Image
-                      source={require("../../../assets/icons/dollar.png")}
-                      className="w-5 h-5"
-                      tintColor={"black"}
-                    />
-                    <Text className="text-sm text-black/60">Settings</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity className="w-full flex-row justify-center items-center p-3 bg-red-100 rounded-lg">
+              {/* Menu Items */}
+              <View className="px-6 py-4 flex-1">
+                {/* My Orders */}
+                <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/arrow-up.png")}
-                    className="w-5 h-5"
+                    source={require("../../../assets/icons/list.png")}
+                    className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
-                  <Text className="text-sm text-black/60">Logout</Text>
+                  <Text className="text-base text-black font-JakartaBold">
+                    My Orders
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Favorites */}
+                <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
+                  <Image
+                    source={require("../../../assets/icons/heart.png")}
+                    className="w-6 h-6 mr-4"
+                    tintColor={"black"}
+                  />
+                  <Text className="text-base text-black font-JakartaBold">
+                    Favorites
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Addresses */}
+                <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
+                  <Image
+                    source={require("../../../assets/icons/pin.png")}
+                    className="w-6 h-6 mr-4"
+                    tintColor={"black"}
+                  />
+                  <Text className="text-base text-black font-JakartaBold">
+                    My Addresses
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Notifications */}
+                <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
+                  <Image
+                    source={require("../../../assets/icons/bell.png")}
+                    className="w-6 h-6 mr-4"
+                    tintColor={"black"}
+                  />
+                  <Text className="text-base text-black font-JakartaBold">
+                    Notifications
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Settings */}
+                <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
+                  <Image
+                    source={require("../../../assets/icons/dollar.png")}
+                    className="w-6 h-6 mr-4"
+                    tintColor={"black"}
+                  />
+                  <Text className="text-base text-black font-JakartaBold">
+                    Settings
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Help & Support */}
+                <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
+                  <Image
+                    source={require("../../../assets/icons/info.png")}
+                    className="w-6 h-6 mr-4"
+                    tintColor={"black"}
+                  />
+                  <Text className="text-base text-black font-JakartaBold">
+                    Help & Support
+                  </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Logout Button */}
+              <View className="px-6 pb-4">
+                <TouchableOpacity className="w-full flex-row justify-center items-center p-4 bg-red-100 rounded-lg">
+                  <Image
+                    source={require("../../../assets/icons/arrow-up.png")}
+                    className="w-5 h-5 mr-2"
+                    tintColor={"#EF4444"}
+                  />
+                  <Text className="text-base text-red-500 font-JakartaBold">
+                    Logout
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Footer */}
-              <View className="px-6 pb-10 pt-5 items-center">
-                <Text className="text-xs text-black/60">GBdelight v1.0</Text>
-                <Text className="text-xs text-black/50 mt-1">
-                  Made with 💕 for cake lovers
+              <View className="px-6 pb-10 pt-2 items-center">
+                <Text className="text-xs text-black/60 font-JakartaBold">
+                  GBdelight v1.0
+                </Text>
+                <Text className="text-xs text-black/50 mt-1 font-JakartaBold">
+                  Made with 💕 BY gayu
                 </Text>
               </View>
             </View>
