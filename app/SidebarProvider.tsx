@@ -129,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                   className="w-7 h-7 rounded-full bg-white/20 justify-center items-center mt-1"
                 >
                   <Image
-                    source={require("../../../assets/icons/close.png")}
+                    source={require("../assets/icons/close.png")}
                     className="w-5 h-5"
                     tintColor={"black"}
                   />
@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                 {/* My Orders */}
                 <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/list.png")}
+                    source={require("../assets/icons/list.png")}
                     className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
@@ -188,7 +188,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                 {/* Favorites */}
                 <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/heart.png")}
+                    source={require("../assets/icons/heart.png")}
                     className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
@@ -200,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                 {/* Addresses */}
                 <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/pin.png")}
+                    source={require("../assets/icons/pin.png")}
                     className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
@@ -212,7 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                 {/* Notifications */}
                 <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/bell.png")}
+                    source={require("../assets/icons/bell.png")}
                     className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
@@ -224,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                 {/* Settings */}
                 <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/dollar.png")}
+                    source={require("../assets/icons/dollar.png")}
                     className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
@@ -236,7 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
                 {/* Help & Support */}
                 <TouchableOpacity className="flex-row items-center py-4 border-b border-black/10">
                   <Image
-                    source={require("../../../assets/icons/info.png")}
+                    source={require("../assets/icons/info.png")}
                     className="w-6 h-6 mr-4"
                     tintColor={"black"}
                   />
@@ -250,7 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
               <View className="px-6 pb-4">
                 <TouchableOpacity className="w-full flex-row justify-center items-center p-4 bg-red-100 rounded-lg">
                   <Image
-                    source={require("../../../assets/icons/arrow-up.png")}
+                    source={require("../assets/icons/arrow-up.png")}
                     className="w-5 h-5 mr-2"
                     tintColor={"#EF4444"}
                   />
@@ -295,3 +295,6 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
     </SidebarContext.Provider>
   );
 };
+
+// Default export
+export default SidebarProvider;

@@ -6,7 +6,8 @@ import "./globals.css";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
-import { SidebarProvider } from "./(root)/(tabs)/SidebarProvider";
+import { CartProvider } from "../components/CartProvider";
+import { SidebarProvider } from "./SidebarProvider";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -34,14 +35,16 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
-      <SidebarProvider>
-        {/* Hide the status bar */}
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(root)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        </Stack>
-      </SidebarProvider>
+      <CartProvider>
+        <SidebarProvider>
+          {/* Hide the status bar */}
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(root)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack>
+        </SidebarProvider>
+      </CartProvider>
     </ClerkProvider>
   );
 }

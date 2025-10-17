@@ -3,6 +3,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useCart } from "../../components/CartProvider";
 import { productsByCategory } from "../../constants/categoriesData";
 
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -27,6 +28,7 @@ const CakeDetails = () => {
     useNavigation<
       NativeStackNavigationProp<RootStackParamList, "CakeDetails">
     >();
+  const { addToCart } = useCart();
   const { productId, categoryKey } = route.params as {
     productId: string;
     categoryKey: string;
@@ -170,7 +172,13 @@ const CakeDetails = () => {
               elevation: 5,
             }}
             onPress={() => {
-              // Add to cart logic here
+              addToCart({
+                id: product.id.toString(),
+                name: product.name,
+                price: product.price || 0,
+                image: product.image,
+                quantity: 1,
+              });
             }}
           >
             <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>

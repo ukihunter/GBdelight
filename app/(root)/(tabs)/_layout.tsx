@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSidebar } from "./SidebarProvider";
+import { useSidebar } from "../../SidebarProvider";
 const TabIcon = ({
   source,
   focused,

@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CartModal from "../../../components/CartModal";
+import { useCart } from "../../../components/CartProvider";
 import {
   categories,
   productsByCategory,
@@ -36,9 +38,11 @@ const Home = () => {
   );
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
+  const { cart } = useCart();
+  const [cartModalVisible, setCartModalVisible] = useState(false);
+
   const handleDestinationPress = () => {
     console.log("Destination input pressed");
-    // Implement navigation or other logic here
   };
   const width = Dimensions.get("window").width;
   const ads = [
@@ -52,78 +56,112 @@ const Home = () => {
     <>
       <StatusBar
         translucent
-        backgroundColor="transparent"
+        backgroundColor="#f5718a"
         barStyle="dark-content"
       />
 
       <SafeAreaView style={{ flex: 1 }} className="bg-[#fcf1f1]">
-        <Image
-          source={require("../../../assets/icons/image.png")}
-          style={{
-            width: "100%",
-            height: "30%",
-            resizeMode: "cover",
-            zIndex: -1,
-            position: "absolute",
-            top: 0,
-          }}
-        />
-        <View className="flex-row justify-between items-center ">
-          <Text
-            style={{
-              color: "#ffffff",
-              fontSize: 20,
-              paddingLeft: 20,
-              marginBottom: 60,
-              fontWeight: "bold",
-            }}
-          >
-            Hello{" "}
-            {isLoaded && isSignedIn && user?.username ? (
-              <Text
-                style={{
-                  color: "#ffffff",
-                  fontSize: 27,
-                  fontFamily: "JakartaBold",
-                }}
-              >
-                {user.username}
-              </Text>
-            ) : (
-              <Text style={{ color: "#888" }}>Guest</Text>
-            )}{" "}
-          </Text>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={{
-              backgroundColor: "#FDAAAA",
-              width: 45,
-              height: 45,
-              borderRadius: 28,
-              justifyContent: "center",
-              alignItems: "center",
-              marginRight: 20,
-              marginBottom: 60,
-            }}
-          >
-            <Image
-              source={icons.cart}
-              style={{
-                width: 26,
-                height: 26,
-                tintColor: "#ffffffff",
-                resizeMode: "contain",
-              }}
-            />
-          </TouchableOpacity>
-        </View>
-
         <FlatList
           ref={flatListRef}
           data={[]}
           renderItem={null}
           ListHeaderComponent={
             <>
+              <Image
+                source={require("../../../assets/icons/image.png")}
+                style={{
+                  width: "100%",
+                  height: "12%",
+                  resizeMode: "cover",
+                  zIndex: -1,
+                  position: "absolute",
+                  top: 0,
+                }}
+              />
+              <View>
+                <Text className="text-white font-JakartaBold mr-10  text-xl px-6">
+                  GB Delight
+                </Text>
+              </View>
+              <View className="flex-row justify-between items-center ">
+                <Text
+                  style={{
+                    color: "#ffffff",
+                    fontSize: 20,
+                    paddingLeft: 20,
+                    marginBottom: 60,
+                    fontWeight: "bold",
+                  }}
+                >
+                  Hello{" "}
+                  {isLoaded && isSignedIn && user?.username ? (
+                    <Text
+                      style={{
+                        color: "#ffffff",
+                        fontSize: 27,
+                        fontFamily: "JakartaBold",
+                      }}
+                    >
+                      {user.username}
+                    </Text>
+                  ) : (
+                    <Text style={{ color: "#888" }}>Guest</Text>
+                  )}{" "}
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setCartModalVisible(true)}
+                  style={{
+                    backgroundColor: "#FDAAAA",
+                    width: 45,
+                    height: 45,
+                    borderRadius: 28,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginRight: 20,
+                    marginBottom: 60,
+                    position: "relative",
+                  }}
+                >
+                  <Image
+                    source={icons.cart}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      tintColor: "#ffffffff",
+                      resizeMode: "contain",
+                    }}
+                  />
+                  {cart.length > 0 && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        top: -5,
+                        right: -5,
+                        backgroundColor: "#ff4444",
+                        borderRadius: 10,
+                        minWidth: 20,
+                        height: 20,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        borderWidth: 2,
+                        borderColor: "#fff",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {cart.length}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+
               <View>
                 <GoogleTextInput
                   icon={icons.search}
@@ -350,6 +388,12 @@ const Home = () => {
               )}
             </>
           }
+        />
+
+        {/* Cart Modal */}
+        <CartModal
+          visible={cartModalVisible}
+          onClose={() => setCartModalVisible(false)}
         />
       </SafeAreaView>
     </>
