@@ -73,7 +73,7 @@ const Welcome = () => {
           title={isLastSlide ? "Let's GO !" : "Next"}
           onPress={() =>
             isLastSlide
-              ? router.replace("/(auth)/sign-up")
+              ? router.replace("/(auth)/sign-in")
               : swiperRef.current?.scrollBy(1)
           }
           className="w-11/12  mt-10 mb-6 bg-[#ac5b3b] py-4 rounded-3xl"

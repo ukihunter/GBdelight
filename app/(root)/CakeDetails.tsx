@@ -187,6 +187,7 @@ const CakeDetails = () => {
                 color: "#fff",
                 icon: "success",
                 duration: 2000,
+                position: "center",
               });
             }}
           >

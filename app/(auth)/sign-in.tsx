@@ -6,6 +6,7 @@ import { Link, useRouter } from "expo-router";
 import { useSignIn } from "@clerk/clerk-expo";
 import React, { useState } from "react";
 import { Image, ScrollView, Text, View } from "react-native";
+import { showMessage } from "react-native-flash-message";
 
 const SignIn = () => {
   const [Form, Setform] = useState({
@@ -17,8 +18,21 @@ const SignIn = () => {
   const router = useRouter();
 
   const onsignin = async () => {
-    if (!isLoaded) return;
-
+    if (!isLoaded) {
+      showMessage({
+        message: "Sign-in service is not loaded. Please try again.",
+        type: "danger",
+      });
+      return;
+    }
+    if (!Form.email || !Form.password) {
+      showMessage({
+        message: "Please enter both email and password.",
+        type: "danger",
+        position: "bottom",
+      });
+      return;
+    }
     // Start the sign-in process using the email and password provided
     try {
       const signInAttempt = await signIn.create({
@@ -34,12 +48,34 @@ const SignIn = () => {
       } else {
         // If the status isn't complete, check why. User might need to
         // complete further steps.
+        showMessage({
+          message:
+            "Additional steps required to sign in. Please check your email or try again.",
+          type: "warning",
+          position: "top",
+        });
         console.error(JSON.stringify(signInAttempt, null, 2));
       }
-    } catch (err) {
+    } catch (err: any) {
       // See https://clerk.com/docs/custom-flows/error-handling
       // for more info on error handling
-      console.error(JSON.stringify(err, null, 2));
+      if (err.errors && Array.isArray(err.errors) && err.errors.length > 0) {
+        showMessage({
+          message: "Make sure your credentials are correct.",
+          type: "danger",
+        });
+      } else if (err.message) {
+        showMessage({
+          message: "Make sure your credentials are correct.",
+          type: "danger",
+        });
+      } else {
+        showMessage({
+          message: "An unknown error occurred. Please try again.",
+          type: "danger",
+        });
+      }
+      // console.error(JSON.stringify(err, null, 2));
     }
   };
   return (

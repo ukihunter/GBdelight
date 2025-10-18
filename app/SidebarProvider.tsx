@@ -1,5 +1,7 @@
-import { useUser } from "@clerk/clerk-expo";
+import { useClerk, useUser } from "@clerk/clerk-expo";
 import { LinearGradient } from "expo-linear-gradient";
+
+import { useRouter } from "expo-router";
 import React, {
   createContext,
   ReactNode,
@@ -50,7 +52,8 @@ export const useSidebar = () => useContext(SidebarContext);
 const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-
+  const { signOut } = useClerk();
+  const router = useRouter();
   React.useEffect(() => {
     if (visible) {
       Animated.parallel([
@@ -83,6 +86,20 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
 
   const { user } = useUser();
   if (!visible) return null;
+  // Use `useClerk()` to access the `signOut()` function
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // Redirect to your desired page
+      router.replace("/(auth)/sign-in");
+      onClose();
+    } catch (err) {
+      // See https://clerk.com/docs/guides/development/custom-flows/error-handling
+      // for more info on error handling
+      console.error(JSON.stringify(err, null, 2));
+    }
+  };
   return (
     <Modal
       transparent={true}
@@ -91,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      <View className="flex-1 flex-row justify-end">
+      <View className=" flex-row justify-end">
         {/* Dark Overlay */}
         <TouchableWithoutFeedback onPress={onClose}>
           <Animated.View
@@ -248,7 +265,10 @@ const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
 
               {/* Logout Button */}
               <View className="px-6 pb-4">
-                <TouchableOpacity className="w-full flex-row justify-center items-center p-4 bg-red-100 rounded-lg">
+                <TouchableOpacity
+                  className="w-full flex-row justify-center items-center p-4 bg-red-100 rounded-lg"
+                  onPress={handleSignOut}
+                >
                   <Image
                     source={require("../assets/icons/arrow-up.png")}
                     className="w-5 h-5 mr-2"

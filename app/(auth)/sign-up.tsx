@@ -6,8 +6,8 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { Link } from "expo-router";
 import React, { useState } from "react";
 import { Image, ScrollView, Text, View } from "react-native";
+import { showMessage } from "react-native-flash-message";
 import ReactNativeModal from "react-native-modal";
-
 const Signup = () => {
   const [showsuccessModal, setshowsuccessModal] = useState(false);
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -26,8 +26,22 @@ const Signup = () => {
   });
 
   const onSignUpPress = async () => {
-    if (!isLoaded) return;
-
+    if (!isLoaded) {
+      showMessage({
+        message: "Sign-up service is not loaded. Please try again.",
+        type: "danger",
+        position: "top",
+      });
+      return;
+    }
+    if (!Form.name || !Form.email || !Form.password) {
+      showMessage({
+        message: "Please fill in all fields.",
+        type: "danger",
+        position: "bottom",
+      });
+      return;
+    }
     //  if (Form.password !== Form.confirmPassword) {
     //  alert("Passwords do not match!");
     // return;
@@ -44,22 +58,22 @@ const Signup = () => {
       // Send user an email with verification code
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
-      // Set 'pendingVerification' to true to display second form
-      // and capture OTP code
       setverification((prev) => ({ ...prev, state: "pending" }));
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      // console.error(JSON.stringify(err, null, 2));
-      if (typeof err === "object" && err !== null && "errors" in err) {
-        // @ts-ignore
-        alert(err.errors?.[0]?.message || "An error occurred");
-      } else {
-        alert("An error occurred");
+    } catch (err: any) {
+      let errorMessage = "An error occurred";
+      if (err.errors && err.errors.length > 0) {
+        errorMessage =
+          err.errors[0].longMessage || err.errors[0].message || errorMessage;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+      showMessage({
+        message: errorMessage,
+        type: "danger",
+        position: "top",
+      });
     }
   };
-
   // Handle submission of verification form
   const onVerifyPress = async () => {
     if (!isLoaded) return;
@@ -262,14 +276,13 @@ const Signup = () => {
               Your account has been created successfully!
             </Text>
             <CustomButton
-              title="Let's Hop In"
+              title="Let's Get Started"
               className="p-3 w-full "
               onPress={async () => {
                 if (verification.sessionId && setActive) {
                   await setActive({ session: verification.sessionId });
                 }
                 setshowsuccessModal(false);
-                // The auth layout will handle the redirect now
               }}
             />
           </View>
