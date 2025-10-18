@@ -1,4 +1,5 @@
 import React from "react";
+
 import {
   FlatList,
   Image,
@@ -14,9 +15,14 @@ import { CartItem, useCart } from "./CartProvider";
 interface CartModalProps {
   visible: boolean;
   onClose: () => void;
+  onCheckout: () => void;
 }
 
-const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
+const CartModal: React.FC<CartModalProps> = ({
+  visible,
+  onClose,
+  onCheckout,
+}) => {
   const { cart, removeFromCart, clearCart } = useCart();
 
   const totalPrice = cart.reduce(
@@ -233,7 +239,7 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={onClose}
+                      onPress={onCheckout}
                       style={{
                         flex: 2,
                         backgroundColor: "#FDAAAA",
@@ -249,7 +255,7 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
                           fontSize: 16,
                         }}
                       >
-                        Continue Shopping
+                        Process to Checkout
                       </Text>
                     </TouchableOpacity>
                   </View>

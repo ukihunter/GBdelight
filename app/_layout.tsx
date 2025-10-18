@@ -37,6 +37,7 @@ export default function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <FlashMessage floating={true} />
+
       <CartProvider>
         <SidebarProvider>
           <Stack>

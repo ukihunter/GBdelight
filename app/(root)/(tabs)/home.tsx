@@ -17,6 +17,8 @@ import Carousel from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CartModal from "../../../components/CartModal";
 import { useCart } from "../../../components/CartProvider";
+import ConfirmDetailsModal from "../../../components/ConfirmDetailsModal";
+import PaymentDetailsModal from "../../../components/PaymentDetailsModal";
 import {
   categories,
   productsByCategory,
@@ -39,7 +41,16 @@ const Home = () => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
   const { cart } = useCart();
-  const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [cartVisible, setCartVisible] = useState(false);
+  const [paymentVisible, setPaymentVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [userDetails, setUserDetails] = useState<{
+    name: string;
+    address: string;
+    postalCode: string;
+    nearestTown: string;
+    mobile: string;
+  } | null>(null);
 
   const handleDestinationPress = () => {
     console.log("Destination input pressed");
@@ -110,7 +121,7 @@ const Home = () => {
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setCartModalVisible(true)}
+                  onPress={() => setCartVisible(true)}
                   style={{
                     backgroundColor: "#FDAAAA",
                     width: 45,
@@ -392,9 +403,43 @@ const Home = () => {
 
         {/* Cart Modal */}
         <CartModal
-          visible={cartModalVisible}
-          onClose={() => setCartModalVisible(false)}
+          visible={cartVisible}
+          onClose={() => setCartVisible(false)}
+          onCheckout={() => {
+            setCartVisible(false);
+            setPaymentVisible(true);
+          }}
         />
+        <PaymentDetailsModal
+          visible={paymentVisible}
+          onClose={() => setPaymentVisible(false)}
+          onSubmit={(details) => {
+            // Save details and show confirmation modal
+            setUserDetails(details);
+            setPaymentVisible(false);
+            setConfirmVisible(true);
+          }}
+        />
+
+        {/* Confirmation Modal */}
+        {userDetails && (
+          <ConfirmDetailsModal
+            visible={confirmVisible}
+            details={userDetails}
+            onConfirm={() => {
+              // Handle final order confirmation here
+              console.log("Order confirmed with details:", userDetails);
+              // Process order, send to API, etc.
+              setConfirmVisible(false);
+              setUserDetails(null);
+            }}
+            onEdit={() => {
+              // Go back to edit details
+              setConfirmVisible(false);
+              setPaymentVisible(true);
+            }}
+          />
+        )}
       </SafeAreaView>
     </>
   );
