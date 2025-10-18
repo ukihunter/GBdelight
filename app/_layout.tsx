@@ -1,10 +1,10 @@
 ﻿import { ClerkProvider } from "@clerk/clerk-expo";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import FlashMessage from "react-native-flash-message";
 import "./globals.css";
 
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import { StripeProvider } from "@stripe/stripe-react-native";
 import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { CartProvider } from "../components/CartProvider";
@@ -36,19 +36,16 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider tokenCache={tokenCache}>
-      <StripeProvider
-        publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""}
-      >
-        <CartProvider>
-          <SidebarProvider>
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="(root)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            </Stack>
-          </SidebarProvider>
-        </CartProvider>
-      </StripeProvider>
+      <FlashMessage position="center" />
+      <CartProvider>
+        <SidebarProvider>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(root)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack>
+        </SidebarProvider>
+      </CartProvider>
     </ClerkProvider>
   );
 }

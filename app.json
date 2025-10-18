@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "cover",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FDAAAA"
     },
     "ios": {
       "supportsTablet": true
@@ -19,15 +19,15 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "##FDAAAA"
       },
       "splash": {
         "image": "./assets/images/splash.png",
         "resizeMode": "cover",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FDAAAA"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.ukihunter.HopIn"
+      "package": "com.ukihunter.GBdelights"
     },
     "web": {
       "bundler": "metro",
@@ -38,11 +38,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#232323",
+          "backgroundColor": "#FDAAAA",
           "image": "./assets/images/icon.png",
           "dark": {
             "image": "./assets/images/splash.png",
-            "backgroundColor": "#000000"
+            "backgroundColor": "#FDAAAA"
           },
           "imageWidth": 200
         }

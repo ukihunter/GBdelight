@@ -1,0 +1,42 @@
+
+
+
+#for running the offline version you need to have commandlinetools you can downlad it from the 
+ android studio
+
+# after that you have to install the sdk also want to add those to the environment 
+
+
+## Running the expo using offlie mode with physical device viva usb 
+   
+   #to revese the port using adb 
+    adb reverse tcp:8081 tcp:8081
+   
+   # to kill the server 
+     adb kill-server
+  
+   # to list the device 
+     adb devices
+
+   #to start the bundling 
+    npx expo start --localhost    
+
+
+   # to run it onnline 
+     npx expo start 
+     or 
+     npx expo start --tunnel // to use tunnel
+
+ /// Press 'a' to start the app 
+ /// Press 'r' to Reload the app
+
+     # For clean development 
+        npx expo start --clean
+
+
+// To reset the example project 
+
+     #npm run reset-project
+
+
+npm install react-native-flash-message

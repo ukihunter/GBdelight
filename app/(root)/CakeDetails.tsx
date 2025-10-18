@@ -1,12 +1,12 @@
 import { icons } from "@/constants";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Stack } from "expo-router";
 import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { showMessage } from "react-native-flash-message";
 import { useCart } from "../../components/CartProvider";
 import { productsByCategory } from "../../constants/categoriesData";
-
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 type Product = {
   id: number;
@@ -178,6 +178,15 @@ const CakeDetails = () => {
                 price: product.price || 0,
                 image: product.image,
                 quantity: 1,
+              });
+              showMessage({
+                message: "Added to Cart!",
+                description: `${product.name} has been added to your cart.`,
+                type: "success",
+                backgroundColor: "#FDAAAA",
+                color: "#fff",
+                icon: "success",
+                duration: 2000,
               });
             }}
           >

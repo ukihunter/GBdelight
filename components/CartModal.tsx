@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   FlatList,
   Image,
@@ -10,8 +10,6 @@ import {
 } from "react-native";
 import { icons } from "../constants";
 import { CartItem, useCart } from "./CartProvider";
-import CheckoutForm, { CustomerDetails } from "./CheckoutForm";
-import PaymentModal from "./PaymentModal";
 
 interface CartModalProps {
   visible: boolean;
@@ -20,60 +18,11 @@ interface CartModalProps {
 
 const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
   const { cart, removeFromCart, clearCart } = useCart();
-  const [checkoutFormVisible, setCheckoutFormVisible] = useState(false);
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [customerDetails, setCustomerDetails] =
-    useState<CustomerDetails | null>(null);
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-
-  const handleCheckout = () => {
-    setCheckoutFormVisible(true);
-  };
-
-  const handleProceedToPayment = (details: CustomerDetails) => {
-    setCustomerDetails(details);
-    setCheckoutFormVisible(false);
-    setPaymentModalVisible(true);
-  };
-
-  const handlePaymentSuccess = async (paymentIntent: any) => {
-    try {
-      // Save order to database
-      const response = await fetch("/api/save-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentIntentId: paymentIntent.id,
-          customerDetails,
-          cartItems: cart,
-          totalAmount: totalPrice,
-          status: "paid",
-        }),
-      });
-
-      if (response.ok) {
-        // Clear cart and close modals
-        clearCart();
-        setPaymentModalVisible(false);
-        setCheckoutFormVisible(false);
-        onClose();
-      }
-    } catch (error) {
-      console.error("Error saving order:", error);
-    }
-  };
-
-  const handleCloseAll = () => {
-    setPaymentModalVisible(false);
-    setCheckoutFormVisible(false);
-    onClose();
-  };
 
   const renderCartItem = ({ item }: { item: CartItem }) => (
     <View
@@ -236,7 +185,7 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
                       flexDirection: "row",
                       justifyContent: "space-between",
                       alignItems: "center",
-                      marginBottom: 20,
+                      marginBottom: 40,
                     }}
                   >
                     <Text
@@ -261,7 +210,7 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
 
                   {/* Buttons */}
                   <View
-                    style={{ flexDirection: "row", gap: 12, marginBottom: 20 }}
+                    style={{ flexDirection: "row", gap: 12, marginBottom: 50 }}
                   >
                     <TouchableOpacity
                       onPress={clearCart}
@@ -284,7 +233,7 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={handleCheckout}
+                      onPress={onClose}
                       style={{
                         flex: 2,
                         backgroundColor: "#FDAAAA",
@@ -300,7 +249,7 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
                           fontSize: 16,
                         }}
                       >
-                        Checkout
+                        Continue Shopping
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -310,26 +259,6 @@ const CartModal: React.FC<CartModalProps> = ({ visible, onClose }) => {
           </SafeAreaView>
         </View>
       </View>
-
-      {/* Checkout Form Modal */}
-      <CheckoutForm
-        visible={checkoutFormVisible}
-        onClose={() => setCheckoutFormVisible(false)}
-        onProceedToPayment={handleProceedToPayment}
-        totalAmount={totalPrice}
-      />
-
-      {/* Payment Modal */}
-      {customerDetails && (
-        <PaymentModal
-          visible={paymentModalVisible}
-          onClose={handleCloseAll}
-          customerDetails={customerDetails}
-          cartItems={cart}
-          totalAmount={totalPrice}
-          onPaymentSuccess={handlePaymentSuccess}
-        />
-      )}
     </Modal>
   );
 };

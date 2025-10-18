@@ -4,7 +4,7 @@ import { Text, View } from "react-native";
 const rides = () => {
   return (
     <View>
-      <Text>rides</Text>
+      <Text>Ai eka </Text>
     </View>
   );
 };
