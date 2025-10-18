@@ -315,7 +315,7 @@ const Home = () => {
                               fontFamily: "JakartaBold",
                             }}
                           >
-                            $
+                            LKR{" "}
                             {"price" in product && product.price
                               ? product.price.toFixed(2)
                               : "0.00"}

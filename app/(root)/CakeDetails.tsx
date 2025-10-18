@@ -116,7 +116,7 @@ const CakeDetails = () => {
               fontFamily: "JakartaBold",
             }}
           >
-            ${product.price?.toFixed(2)}
+            LKR {product.price?.toFixed(2)}
           </Text>
           <Text
             style={{
@@ -256,7 +256,7 @@ const CakeDetails = () => {
                   </Text>
                   <Text style={{ color: "#FDAAAA", fontWeight: "bold" }}>
                     {"price" in item && typeof item.price === "number"
-                      ? `$${item.price.toFixed(2)}`
+                      ? `LKR ${item.price.toFixed(2)}`
                       : ""}
                   </Text>
                 </TouchableOpacity>
