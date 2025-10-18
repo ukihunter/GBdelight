@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { PaymentModal } from "./PaymentModal";
 
 interface ConfirmDetailsModalProps {
   visible: boolean;
@@ -10,16 +11,40 @@ interface ConfirmDetailsModalProps {
     nearestTown: string;
     mobile: string;
   };
+  totalAmount?: number; // Add total amount prop
   onConfirm: () => void;
   onEdit: () => void;
+  onPaymentSuccess?: (paymentIntentId: string) => void; // Add payment success callback
 }
 
 const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
   visible,
   details,
+  totalAmount = 0,
   onConfirm,
   onEdit,
+  onPaymentSuccess,
 }) => {
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const handleConfirmOrder = () => {
+    if (totalAmount > 0) {
+      // Show payment modal if there's an amount to pay
+      setShowPaymentModal(true);
+    } else {
+      // If no payment needed, proceed with confirmation
+      onConfirm();
+    }
+  };
+
+  const handlePaymentSuccess = (paymentIntentId: string) => {
+    setShowPaymentModal(false);
+    if (onPaymentSuccess) {
+      onPaymentSuccess(paymentIntentId);
+    } else {
+      onConfirm();
+    }
+  };
   return (
     <Modal
       visible={visible}
@@ -64,7 +89,7 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
           zIndex: 3,
         }}
       >
-        <View className="bg-white rounded-3xl w-full max-w-sm  shadow-2xl">
+        <View className="bg-white rounded-2xl w-full max-w-sm  shadow-2xl">
           <ScrollView className="p-4">
             {/* Modern Header */}
             <View className="items-center mb-6">
@@ -73,9 +98,6 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
               </View>
               <Text className="text-2xl font-bold text-gray-800 mb-2">
                 Review Details
-              </Text>
-              <Text className="text-sm text-gray-500 text-center">
-                Please confirm your delivery information
               </Text>
             </View>
 
@@ -141,14 +163,28 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
               </View>
             </View>
 
+            {/* Total Amount Display */}
+            {totalAmount > 0 && (
+              <View className="bg-[#FDAAAA]/10 rounded-2xl p-4 mt-4 border border-[#FDAAAA]/20">
+                <Text className="text-center text-sm font-semibold text-[#FDAAAA] mb-1">
+                  TOTAL AMOUNT
+                </Text>
+                <Text className="text-center text-2xl font-bold text-gray-800">
+                  ${totalAmount.toFixed(2)}
+                </Text>
+              </View>
+            )}
+
             {/* Modern Action Buttons */}
             <View className="gap-3 mt-6">
               <TouchableOpacity
-                onPress={onConfirm}
+                onPress={handleConfirmOrder}
                 className="bg-[#FDAAAA] rounded-2xl py-4 px-6 items-center shadow-lg"
               >
                 <Text className="text-white text-lg font-bold tracking-wide">
-                  Confirm Order
+                  {totalAmount > 0
+                    ? `Pay $${totalAmount.toFixed(2)}`
+                    : "Confirm Order"}
                 </Text>
               </TouchableOpacity>
 
@@ -164,6 +200,18 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
           </ScrollView>
         </View>
       </View>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPaymentSuccess={handlePaymentSuccess}
+        amount={totalAmount}
+        customerDetails={{
+          name: details.name,
+          phone: details.mobile,
+        }}
+      />
     </Modal>
   );
 };

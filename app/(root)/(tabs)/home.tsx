@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { showMessage } from "react-native-flash-message";
 import Carousel from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CartModal from "../../../components/CartModal";
@@ -40,8 +41,15 @@ const Home = () => {
   );
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
-  const { cart } = useCart();
+  const { cart, clearCart } = useCart();
   const [cartVisible, setCartVisible] = useState(false);
+
+  // Calculate cart total
+  const cartTotal = cart.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
+
   const [paymentVisible, setPaymentVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [userDetails, setUserDetails] = useState<{
@@ -426,20 +434,71 @@ const Home = () => {
           <ConfirmDetailsModal
             visible={confirmVisible}
             details={userDetails}
+            totalAmount={cartTotal}
             onConfirm={() => {
-              // Handle final order confirmation here
+              // Handle final order confirmation here (for free orders)
               console.log("Order confirmed with details:", userDetails);
-              // Process order, send to API, etc.
+
+              // Clear cart and close all modals
+              clearCart();
               setConfirmVisible(false);
+              setPaymentVisible(false);
+              setCartVisible(false);
               setUserDetails(null);
+
+              // Show success message for free order
+              showMessage({
+                message: "Order Confirmed! ",
+                description: "Your order has been placed successfully!",
+                type: "success",
+                backgroundColor: "#4CAF50",
+                color: "#fff",
+                icon: "success",
+                duration: 4000,
+                position: "top",
+              });
             }}
             onEdit={() => {
               // Go back to edit details
               setConfirmVisible(false);
               setPaymentVisible(true);
             }}
+            onPaymentSuccess={(paymentIntentId) => {
+              // Handle successful payment
+              console.log("Payment successful:", paymentIntentId);
+
+              // Clear cart and close all modals
+              clearCart();
+              setConfirmVisible(false);
+              setPaymentVisible(false);
+              setCartVisible(false);
+              setUserDetails(null);
+
+              // Show success message
+              showMessage({
+                message: "Payment Successful! ",
+                description:
+                  "Your order has been placed successfully. Thank you for your purchase!",
+                type: "success",
+                backgroundColor: "#4CAF50",
+                color: "#fff",
+                icon: "success",
+                duration: 4000,
+                position: "top",
+              });
+            }}
           />
         )}
+
+        {/* Cart Modal */}
+        <CartModal
+          visible={cartVisible}
+          onClose={() => setCartVisible(false)}
+          onCheckout={() => {
+            setCartVisible(false);
+            setPaymentVisible(true);
+          }}
+        />
       </SafeAreaView>
     </>
   );

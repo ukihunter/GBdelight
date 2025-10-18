@@ -44,7 +44,7 @@ export const productsByCategory = {
       id: 3,
       name: "Butterfly cake ",
       image: require("../assets/products/cake3.jpg"),
-      price: 4.99,
+      price: 500.99,
       description: "Delicious chocolate slice with rich flavor.",
       ingredients: ["Flour", "Sugar", "Cocoa", "Butter", "Eggs"],
     },
