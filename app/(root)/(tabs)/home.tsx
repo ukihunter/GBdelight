@@ -8,6 +8,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  RefreshControl,
   StatusBar,
   Text,
   TouchableOpacity,
@@ -37,17 +38,27 @@ const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState<
     keyof typeof productsByCategory | null
   >(
-    categories[0]?.key as keyof typeof productsByCategory // Set default to first category
+    categories[0]?.key as keyof typeof productsByCategory, // Set default to first category
   );
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
   const { cart, clearCart } = useCart();
   const [cartVisible, setCartVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Handle pull to refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate refresh (in real app, would fetch new data)
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   // Calculate cart total
   const cartTotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
-    0
+    0,
   );
 
   const [paymentVisible, setPaymentVisible] = useState(false);
@@ -84,6 +95,14 @@ const Home = () => {
           ref={flatListRef}
           data={[]}
           renderItem={null}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={["#ff728a"]}
+              tintColor="#ff728a"
+            />
+          }
           ListHeaderComponent={
             <>
               <Image
@@ -242,7 +261,7 @@ const Home = () => {
                     activeOpacity={0.7}
                     onPress={() =>
                       setSelectedCategory(
-                        cat.key as keyof typeof productsByCategory
+                        cat.key as keyof typeof productsByCategory,
                       )
                     }
                   >

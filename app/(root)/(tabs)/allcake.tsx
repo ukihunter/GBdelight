@@ -1,42 +1,171 @@
 import { icons } from "@/constants";
+import { useFetch } from "@/lib/fetch";
 import { NavigationProp, useNavigation } from "@react-navigation/core";
-import React, { useRef, useState } from "react";
-import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import {
-  categories,
-  productsByCategory,
-} from "../../../constants/categoriesData";
+import { categories } from "../../../constants/categoriesData";
+
+type DatabaseCake = {
+  id: number;
+  cake_code: string;
+  cake_name: string;
+  description?: string;
+  price_lkr: number | string;
+  stock_quantity: number;
+  is_available: boolean;
+  image_url?: string;
+  category: string;
+  created_at?: string;
+};
+
+type Product = {
+  id: number;
+  name: string;
+  price: number;
+  image?: any;
+  description?: string;
+  cake_code?: string;
+  stock_quantity?: number;
+  is_available?: boolean;
+  image_url?: string;
+};
+
 type RootStackParamList = {
   CakeDetails: {
     productId: number;
-    categoryKey: keyof typeof productsByCategory;
+    categoryKey: string;
   };
 };
 
 const AllCake = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const flatListRef = useRef<FlatList>(null);
-  const [selectedCategory, setSelectedCategory] = useState<
-    keyof typeof productsByCategory | null
-  >(
-    categories[0]?.key as keyof typeof productsByCategory // Set default to first category
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    categories[0]?.key || null,
   );
+  const [refreshing, setRefreshing] = useState(false);
+
+  const {
+    data: cakesData,
+    loading,
+    error,
+    refetch,
+  } = useFetch<DatabaseCake[]>("/cakes");
+
+  // Handle pull to refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  // Debug logging
+  useEffect(() => {
+    console.log("=== AllCake Debug ===");
+    console.log("Loading:", loading);
+    console.log("Error:", error);
+    console.log("CakesData:", cakesData);
+    console.log("SelectedCategory:", selectedCategory);
+  }, [cakesData, loading, error, selectedCategory]);
+
+  // Map database category to our category keys
+  const getCategoryKey = (dbCategory: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      "cake slice": "cake-slice",
+      "cake-slice": "cake-slice",
+      cake: "cake",
+      cookies: "cookies",
+      cupcake: "cupcake",
+      muffin: "cupcake",
+    };
+    return categoryMap[dbCategory.toLowerCase()] || "cake";
+  };
+
+  // Transform database data to product format
+  const productsByCategory = useMemo(() => {
+    if (!cakesData) return {};
+
+    const grouped: { [key: string]: Product[] } = {};
+
+    cakesData.forEach((cake) => {
+      const categoryKey = getCategoryKey(cake.category);
+      if (!grouped[categoryKey]) {
+        grouped[categoryKey] = [];
+      }
+
+      grouped[categoryKey].push({
+        id: cake.id,
+        name: cake.cake_name,
+        price:
+          typeof cake.price_lkr === "string"
+            ? parseFloat(cake.price_lkr)
+            : cake.price_lkr,
+        image: cake.image_url
+          ? { uri: cake.image_url }
+          : require("../../../assets/products/cake1.png"),
+        description: cake.description,
+        cake_code: cake.cake_code,
+        stock_quantity: cake.stock_quantity,
+        is_available: cake.is_available,
+        image_url: cake.image_url,
+      });
+    });
+
+    return grouped;
+  }, [cakesData]);
+
+  // Get unique categories from fetched data
+  const uniqueCategories = useMemo(() => {
+    if (!cakesData || cakesData.length === 0) return categories;
+
+    const fetchedCategoryKeys = [
+      ...new Set(cakesData.map((c) => getCategoryKey(c.category))),
+    ];
+    return categories.filter((cat) => fetchedCategoryKeys.includes(cat.key));
+  }, [cakesData]);
+
+  // Set default category on first load - updates when data arrives
+  useEffect(() => {
+    if (uniqueCategories.length > 0) {
+      // Only set if not already set, or if current selection is not in available categories
+      if (
+        !selectedCategory ||
+        !uniqueCategories.some((c) => c.key === selectedCategory)
+      ) {
+        setSelectedCategory(uniqueCategories[0].key);
+      }
+    }
+  }, [uniqueCategories]);
   return (
     <SafeAreaView className="flex-1">
       <View className=" ml-8 mt-5  text-2xl">
         <Text className="font-JakartaBold text-2xl">All Products</Text>
       </View>
+
+      {/* Error state */}
+      {error && (
+        <View className="ml-8 mr-8 mt-4 p-3 bg-red-100 rounded">
+          <Text className="text-red-600 text-sm">
+            Error loading cakes: {error}
+          </Text>
+        </View>
+      )}
+
       <View className=" flex justify-between flex-row  mt-5 ml-5 mr-8">
-        {categories.map((category) => (
+        {uniqueCategories.map((category) => (
           <TouchableOpacity
             key={category.key}
-            onPress={() =>
-              setSelectedCategory(
-                category.key as keyof typeof productsByCategory
-              )
-            }
+            onPress={() => setSelectedCategory(category.key)}
             activeOpacity={0.7}
           >
             <Text
@@ -52,12 +181,20 @@ const AllCake = () => {
         ))}
       </View>
 
-      {/* Display products of the selected category */}
+      {/* Loading state */}
+      {loading && (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#ff728a" />
+          <Text className="mt-3 text-gray-600">Loading cakes...</Text>
+        </View>
+      )}
 
-      {selectedCategory && productsByCategory[selectedCategory] && (
+      {/* Display products of the selected category */}
+      {!loading && selectedCategory && productsByCategory[selectedCategory] && (
         <View className="flex-1 mt-5">
           <Text className="text-base font-JakartaBold mb-2 ml-2">
-            All {categories.find((c) => c.key === selectedCategory)?.label}
+            All{" "}
+            {uniqueCategories.find((c) => c.key === selectedCategory)?.label}
           </Text>
 
           <FlatList
@@ -66,6 +203,14 @@ const AllCake = () => {
             keyExtractor={(item) => item.id.toString()}
             numColumns={2}
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={["#ff728a"]}
+                tintColor="#ff728a"
+              />
+            }
             renderItem={({ item: product }) => (
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -132,10 +277,7 @@ const AllCake = () => {
                       fontFamily: "JakartaBold",
                     }}
                   >
-                    LKR {""}
-                    {"price" in product && product.price
-                      ? product.price.toFixed(2)
-                      : "0.00"}
+                    LKR {product.price.toFixed(2)}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -201,6 +343,13 @@ const AllCake = () => {
             }
             showsVerticalScrollIndicator={false}
           />
+        </View>
+      )}
+
+      {/* Empty state */}
+      {!loading && (!cakesData || cakesData.length === 0) && (
+        <View className="flex-1 justify-center items-center">
+          <Text className="text-gray-600 text-lg">No cakes available</Text>
         </View>
       )}
     </SafeAreaView>
