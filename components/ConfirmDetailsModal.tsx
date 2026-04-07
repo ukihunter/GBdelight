@@ -170,7 +170,7 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
                   TOTAL AMOUNT
                 </Text>
                 <Text className="text-center text-2xl font-bold text-gray-800">
-                  ${totalAmount.toFixed(2)}
+                  LKR {totalAmount.toFixed(2)}
                 </Text>
               </View>
             )}
@@ -183,7 +183,7 @@ const ConfirmDetailsModal: React.FC<ConfirmDetailsModalProps> = ({
               >
                 <Text className="text-white text-lg font-bold tracking-wide">
                   {totalAmount > 0
-                    ? `Pay $${totalAmount.toFixed(2)}`
+                    ? `Pay LKR ${totalAmount.toFixed(2)}`
                     : "Confirm Order"}
                 </Text>
               </TouchableOpacity>

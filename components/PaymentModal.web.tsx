@@ -34,7 +34,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             onPaymentSuccess("simulated_payment_web");
           },
         },
-      ]
+      ],
     );
   };
 
@@ -61,7 +61,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <View className="bg-gray-50 rounded-2xl p-4 mb-6">
             <Text className="text-sm text-gray-600 mb-1">Total Amount</Text>
             <Text className="text-2xl font-bold text-[#FDAAAA]">
-              ${amount.toFixed(2)}
+              LKR {amount.toFixed(2)}
             </Text>
           </View>
 

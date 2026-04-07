@@ -1,9 +1,11 @@
 import GoogleTextInput from "@/components/GoogleTextInput";
 import { icons } from "@/constants";
+import { useFetch } from "@/lib/fetch";
 import { useUser } from "@clerk/clerk-expo";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
@@ -21,24 +23,45 @@ import CartModal from "../../../components/CartModal";
 import { useCart } from "../../../components/CartProvider";
 import ConfirmDetailsModal from "../../../components/ConfirmDetailsModal";
 import PaymentDetailsModal from "../../../components/PaymentDetailsModal";
-import {
-  categories,
-  productsByCategory,
-} from "../../../constants/categoriesData";
+import { categories } from "../../../constants/categoriesData";
+
+type DatabaseCake = {
+  id: number;
+  cake_code: string;
+  cake_name: string;
+  description?: string;
+  price_lkr: number | string;
+  stock_quantity: number;
+  is_available: boolean;
+  image_url?: string;
+  category: string;
+  created_at?: string;
+};
+
+type Product = {
+  id: number;
+  name: string;
+  image: any;
+  price: number;
+  description?: string;
+  cake_code?: string;
+  stock_quantity?: number;
+  is_available?: boolean;
+  image_url?: string;
+};
+
 type RootStackParamList = {
   CakeDetails: {
     productId: number;
-    categoryKey: keyof typeof productsByCategory;
+    categoryKey: string;
   };
 };
 
 const Home = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const flatListRef = useRef<FlatList>(null);
-  const [selectedCategory, setSelectedCategory] = useState<
-    keyof typeof productsByCategory | null
-  >(
-    categories[0]?.key as keyof typeof productsByCategory, // Set default to first category
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(
+    categories[0]?.key || null,
   );
   const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
@@ -46,14 +69,88 @@ const Home = () => {
   const [cartVisible, setCartVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fetch cakes from database
+  const {
+    data: cakesData,
+    loading,
+    error,
+    refetch,
+  } = useFetch<DatabaseCake[]>("/cakes");
+
   // Handle pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh (in real app, would fetch new data)
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await refetch();
+    setRefreshing(false);
   };
+
+  // Map database category to UI category keys
+  const getCategoryKey = (dbCategory: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      "cake slice": "cake-slice",
+      "cake-slice": "cake-slice",
+      cake: "cake",
+      cookies: "cookies",
+      cupcake: "cupcake",
+      muffin: "cupcake",
+    };
+    return categoryMap[dbCategory.toLowerCase()] || "cake";
+  };
+
+  // Transform database data to product format and group by category
+  const productsByCategory = useMemo(() => {
+    if (!cakesData) return {};
+
+    const grouped: { [key: string]: Product[] } = {};
+
+    cakesData.forEach((cake) => {
+      const categoryKey = getCategoryKey(cake.category);
+      if (!grouped[categoryKey]) {
+        grouped[categoryKey] = [];
+      }
+
+      grouped[categoryKey].push({
+        id: cake.id,
+        name: cake.cake_name,
+        price:
+          typeof cake.price_lkr === "string"
+            ? parseFloat(cake.price_lkr)
+            : cake.price_lkr,
+        image: cake.image_url
+          ? { uri: cake.image_url }
+          : require("../../../assets/products/cake1.png"),
+        description: cake.description,
+        cake_code: cake.cake_code,
+        stock_quantity: cake.stock_quantity,
+        is_available: cake.is_available,
+        image_url: cake.image_url,
+      });
+    });
+
+    return grouped;
+  }, [cakesData]);
+
+  // Get unique categories from fetched data
+  const uniqueCategories = useMemo(() => {
+    if (!cakesData || cakesData.length === 0) return categories;
+
+    const fetchedCategoryKeys = [
+      ...new Set(cakesData.map((c) => getCategoryKey(c.category))),
+    ];
+    return categories.filter((cat) => fetchedCategoryKeys.includes(cat.key));
+  }, [cakesData]);
+
+  // Set default category on first load
+  useMemo(() => {
+    if (uniqueCategories.length > 0) {
+      if (
+        !selectedCategory ||
+        !uniqueCategories.some((c) => c.key === selectedCategory)
+      ) {
+        setSelectedCategory(uniqueCategories[0].key);
+      }
+    }
+  }, [uniqueCategories]);
 
   // Calculate cart total
   const cartTotal = cart.reduce(
@@ -81,7 +178,6 @@ const Home = () => {
     { id: 3, image: require("../../../assets/add/add3.png") }, // remote image
   ];
 
-  const loading = false;
   return (
     <>
       <StatusBar
@@ -253,17 +349,13 @@ const Home = () => {
               </Text>
               <View className="flex-row justify-between px-6">
                 {/*category buttons*/}
-                {categories.map((cat) => (
+                {uniqueCategories.map((cat) => (
                   <TouchableOpacity
                     key={cat.key}
                     className="rounded-full p-4 shadow-black shadow-lg"
                     style={{ backgroundColor: cat.color, marginBottom: 10 }}
                     activeOpacity={0.7}
-                    onPress={() =>
-                      setSelectedCategory(
-                        cat.key as keyof typeof productsByCategory,
-                      )
-                    }
+                    onPress={() => setSelectedCategory(cat.key)}
                   >
                     <Image
                       source={cat.image}
@@ -273,157 +365,178 @@ const Home = () => {
                 ))}
               </View>
 
-              {/* Display products of the selected category */}
+              {/* Loading state */}
+              {loading && (
+                <View className="flex-1 justify-center items-center mt-20">
+                  <ActivityIndicator size="large" color="#ff728a" />
+                  <Text className="mt-3 text-gray-600">Loading cakes...</Text>
+                </View>
+              )}
 
-              {selectedCategory && productsByCategory[selectedCategory] && (
-                <View style={{ marginTop: 20 }}>
-                  <Text className="text-base font-JakartaBold mb-2 ml-2">
-                    All{" "}
-                    {categories.find((c) => c.key === selectedCategory)?.label}
+              {/* Error state */}
+              {error && (
+                <View className="ml-8 mr-8 mt-4 p-3 bg-red-100 rounded">
+                  <Text className="text-red-600 text-sm">
+                    Error loading cakes: {error}
                   </Text>
-                  <View className="flex-row flex-wrap justify-between px-4">
-                    {productsByCategory[selectedCategory].map((product) => (
-                      <TouchableOpacity
-                        key={product.id}
-                        activeOpacity={0.8}
-                        style={{
-                          width: "47%",
-                          backgroundColor: "#ffffff",
-                          borderRadius: 20,
-                          padding: 16,
-                          marginBottom: 16,
-                          shadowColor: "#000",
-                          shadowOffset: {
-                            width: 0,
-                            height: 4,
-                          },
-                          shadowOpacity: 0.1,
-                          shadowRadius: 8,
-                          elevation: 5,
-                          alignItems: "center",
-                        }}
-                        onPress={() =>
-                          navigation.navigate("CakeDetails", {
-                            productId: product.id,
-                            categoryKey: selectedCategory,
-                          })
-                        }
-                      >
-                        <View>
-                          <Image
-                            source={product.image}
-                            style={{
-                              width: 130,
-                              height: 130,
-                              borderRadius: 20,
-                              resizeMode: "cover",
-                            }}
-                          />
-                        </View>
+                </View>
+              )}
 
-                        <Text
+              {/* Display products of the selected category */}
+              {!loading &&
+                selectedCategory &&
+                productsByCategory[selectedCategory] && (
+                  <View style={{ marginTop: 20 }}>
+                    <Text className="text-base font-JakartaBold mb-2 ml-2">
+                      All{" "}
+                      {
+                        uniqueCategories.find((c) => c.key === selectedCategory)
+                          ?.label
+                      }
+                    </Text>
+                    <View className="flex-row flex-wrap justify-between px-4">
+                      {productsByCategory[selectedCategory].map((product) => (
+                        <TouchableOpacity
+                          key={product.id}
+                          activeOpacity={0.8}
                           style={{
-                            fontSize: 14,
-                            fontWeight: "600",
-                            color: "#333",
-                            textAlign: "center",
-                            marginBottom: 8,
-                            fontFamily: "JakartaBold",
-                          }}
-                          numberOfLines={2}
-                        >
-                          {product.name}
-                        </Text>
-
-                        <View
-                          style={{
-                            backgroundColor: "#FDAAAA",
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            borderRadius: 15,
-                            minWidth: 60,
+                            width: "47%",
+                            backgroundColor: "#ffffff",
+                            borderRadius: 20,
+                            padding: 16,
+                            marginBottom: 16,
+                            shadowColor: "#000",
+                            shadowOffset: {
+                              width: 0,
+                              height: 4,
+                            },
+                            shadowOpacity: 0.1,
+                            shadowRadius: 8,
+                            elevation: 5,
                             alignItems: "center",
                           }}
+                          onPress={() =>
+                            navigation.navigate("CakeDetails", {
+                              productId: product.id,
+                              categoryKey: selectedCategory,
+                            })
+                          }
                         >
+                          <View>
+                            <Image
+                              source={product.image}
+                              style={{
+                                width: 130,
+                                height: 130,
+                                borderRadius: 20,
+                                resizeMode: "cover",
+                              }}
+                            />
+                          </View>
+
                           <Text
                             style={{
                               fontSize: 14,
-                              fontWeight: "bold",
-                              color: "#ffffff",
+                              fontWeight: "600",
+                              color: "#333",
+                              textAlign: "center",
+                              marginBottom: 8,
                               fontFamily: "JakartaBold",
                             }}
+                            numberOfLines={2}
                           >
-                            LKR{" "}
-                            {"price" in product && product.price
-                              ? product.price.toFixed(2)
-                              : "0.00"}
+                            {product.name}
                           </Text>
-                        </View>
 
-                        {/* Add a small heart icon for favorites */}
-                        <TouchableOpacity
-                          style={{
-                            position: "absolute",
-                            top: 12,
-                            right: 12,
-                            backgroundColor: "#ffffff",
-                            borderRadius: 15,
-                            width: 30,
-                            height: 30,
-                            justifyContent: "center",
-                            alignItems: "center",
-                            shadowColor: "#000",
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
-                            elevation: 3,
-                          }}
-                        >
-                          <Image
-                            source={icons.heart}
+                          <View
                             style={{
-                              width: 16,
-                              height: 16,
-                              tintColor: "brown",
+                              backgroundColor: "#FDAAAA",
+                              paddingHorizontal: 12,
+                              paddingVertical: 6,
+                              borderRadius: 15,
+                              minWidth: 60,
+                              alignItems: "center",
                             }}
-                          />
-                        </TouchableOpacity>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <View className="mb-40 mt-10">
-                    <TouchableOpacity
-                      onPress={() =>
-                        flatListRef.current?.scrollToOffset({
-                          offset: 0,
-                          animated: true,
-                        })
-                      }
-                      style={{
-                        alignSelf: "center",
-                        backgroundColor: "#fde8e8",
-                        borderRadius: 9999,
+                          >
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                fontWeight: "bold",
+                                color: "#ffffff",
+                                fontFamily: "JakartaBold",
+                              }}
+                            >
+                              LKR{" "}
+                              {"price" in product && product.price
+                                ? product.price.toFixed(2)
+                                : "0.00"}
+                            </Text>
+                          </View>
 
-                        paddingVertical: 5,
-                        paddingHorizontal: 24,
-                        shadowColor: "#000",
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 4,
-                        elevation: 3,
-                      }}
-                    >
-                      <View>
-                        <Image
-                          source={icons.bottomtoup}
-                          style={{ width: 30, height: 30 }}
-                          tintColor={"brown"}
-                        />
-                      </View>
-                    </TouchableOpacity>
+                          {/* Add a small heart icon for favorites */}
+                          <TouchableOpacity
+                            style={{
+                              position: "absolute",
+                              top: 12,
+                              right: 12,
+                              backgroundColor: "#ffffff",
+                              borderRadius: 15,
+                              width: 30,
+                              height: 30,
+                              justifyContent: "center",
+                              alignItems: "center",
+                              shadowColor: "#000",
+                              shadowOffset: { width: 0, height: 2 },
+                              shadowOpacity: 0.1,
+                              shadowRadius: 4,
+                              elevation: 3,
+                            }}
+                          >
+                            <Image
+                              source={icons.heart}
+                              style={{
+                                width: 16,
+                                height: 16,
+                                tintColor: "brown",
+                              }}
+                            />
+                          </TouchableOpacity>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <View className="mb-40 mt-10">
+                      <TouchableOpacity
+                        onPress={() =>
+                          flatListRef.current?.scrollToOffset({
+                            offset: 0,
+                            animated: true,
+                          })
+                        }
+                        style={{
+                          alignSelf: "center",
+                          backgroundColor: "#fde8e8",
+                          borderRadius: 9999,
+
+                          paddingVertical: 5,
+                          paddingHorizontal: 24,
+                          shadowColor: "#000",
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.1,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }}
+                      >
+                        <View>
+                          <Image
+                            source={icons.bottomtoup}
+                            style={{ width: 30, height: 30 }}
+                            tintColor={"brown"}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
             </>
           }
         />

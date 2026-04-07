@@ -42,7 +42,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         },
         body: JSON.stringify({
           amount: amount,
-          currency: "usd", // Change this to your preferred currency
+          currency: "lkr", // Change this to your preferred currency
         }),
       });
 
@@ -125,7 +125,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               onClose();
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       Alert.alert("Error", "Payment failed. Please try again.");
@@ -158,7 +158,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <View className="bg-gray-50 rounded-2xl p-4 mb-6">
             <Text className="text-sm text-gray-600 mb-1">Total Amount</Text>
             <Text className="text-2xl font-bold text-[#FDAAAA]">
-              ${amount.toFixed(2)}
+              LKR {amount.toFixed(2)}
             </Text>
             <Text className="text-sm text-gray-500 mt-1">
               Secure payment processed by Stripe
@@ -196,7 +196,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </View>
             ) : (
               <Text className="text-white text-lg font-bold">
-                Pay ${amount.toFixed(2)}
+                Pay LKR {amount.toFixed(2)}
               </Text>
             )}
           </TouchableOpacity>

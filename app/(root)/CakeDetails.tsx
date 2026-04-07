@@ -1,24 +1,46 @@
 import { icons } from "@/constants";
+import { useFetch } from "@/lib/fetch";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Stack } from "expo-router";
-import React from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { showMessage } from "react-native-flash-message";
 import { useCart } from "../../components/CartProvider";
-import { productsByCategory } from "../../constants/categoriesData";
+
+type DatabaseCake = {
+  id: number;
+  cake_code: string;
+  cake_name: string;
+  description?: string;
+  price_lkr: number | string;
+  stock_quantity: number;
+  is_available: boolean;
+  image_url?: string;
+  category: string;
+  created_at?: string;
+};
 
 type Product = {
   id: number;
   name: string;
   image: any;
-  price?: number;
+  price: number;
   description?: string;
-  ingredients?: string[];
+  stock_quantity?: number;
+  is_available?: boolean;
+  cake_code?: string;
 };
 
 type RootStackParamList = {
-  CakeDetails: { productId: string; categoryKey: string };
+  CakeDetails: { productId: number; categoryKey: string };
   // ...other routes
 };
 
@@ -29,24 +51,67 @@ const CakeDetails = () => {
       NativeStackNavigationProp<RootStackParamList, "CakeDetails">
     >();
   const { addToCart } = useCart();
-  const { productId, categoryKey } = route.params as {
-    productId: string;
+  const { productId } = route.params as {
+    productId: number;
     categoryKey: string;
   };
 
-  // Find the product by id and category
-  const product: Product | undefined =
-    productsByCategory[categoryKey as keyof typeof productsByCategory]?.find(
-      (item) => item.id === parseInt(productId)
-    ) ||
-    Object.values(productsByCategory)
-      .flat()
-      .find((item) => item.id === parseInt(productId));
+  // Fetch all cakes from database
+  const {
+    data: cakesData,
+    loading,
+    error,
+  } = useFetch<DatabaseCake[]>("/cakes");
 
-  if (!product) {
+  // Find the specific cake and transform it
+  const product: Product | undefined = useMemo(() => {
+    if (!cakesData) return undefined;
+
+    const cake = cakesData.find((c) => c.id === productId);
+    if (!cake) return undefined;
+
+    return {
+      id: cake.id,
+      name: cake.cake_name,
+      price:
+        typeof cake.price_lkr === "string"
+          ? parseFloat(cake.price_lkr)
+          : cake.price_lkr,
+      image: cake.image_url
+        ? { uri: cake.image_url }
+        : require("../../assets/products/cake1.png"),
+      description: cake.description,
+      stock_quantity: cake.stock_quantity,
+      is_available: cake.is_available,
+      cake_code: cake.cake_code,
+    };
+  }, [cakesData, productId]);
+
+  if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>Product not found.</Text>
+        <ActivityIndicator size="large" color="#FDAAAA" />
+      </View>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ color: "#333", fontSize: 16, marginBottom: 16 }}>
+          {error ? "Error loading product" : "Product not found."}
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{
+            backgroundColor: "#FDAAAA",
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "bold" }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -128,39 +193,11 @@ const CakeDetails = () => {
           >
             {product.description || "No description available for this cake."}
           </Text>
-          {product.ingredients && (
-            <View style={{ marginBottom: 20 }}>
-              <Text
-                style={{ fontWeight: "bold", marginBottom: 8, fontSize: 16 }}
-              >
-                Ingredients:
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {product.ingredients.map((ing: string, idx: number) => (
-                  <View
-                    key={idx}
-                    style={{
-                      backgroundColor: "#fde4e4",
-                      borderRadius: 16,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      marginRight: 8,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text style={{ color: "#b85c5c", fontSize: 14 }}>
-                      {ing}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
           {/* Add to Cart Button */}
           <TouchableOpacity
+            disabled={!product.is_available}
             style={{
-              backgroundColor: "#FDAAAA",
+              backgroundColor: product.is_available ? "#FDAAAA" : "#ccc",
               borderRadius: 16,
               paddingVertical: 16,
               alignItems: "center",
@@ -172,10 +209,24 @@ const CakeDetails = () => {
               elevation: 5,
             }}
             onPress={() => {
+              if (!product.is_available) {
+                showMessage({
+                  message: "Out of Stock",
+                  description: "This product is not available.",
+                  type: "danger",
+                  backgroundColor: "#ff6b6b",
+                  color: "#fff",
+                  icon: "danger",
+                  duration: 2000,
+                  position: "center",
+                });
+                return;
+              }
+
               addToCart({
                 id: product.id.toString(),
                 name: product.name,
-                price: product.price || 0,
+                price: product.price,
                 image: product.image,
                 quantity: 1,
               });
@@ -192,77 +243,103 @@ const CakeDetails = () => {
             }}
           >
             <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 18 }}>
-              Add to Cart
+              {product.is_available ? "Add to Cart" : "Out of Stock"}
             </Text>
           </TouchableOpacity>
+
+          {/* Stock Info */}
+          <Text
+            style={{
+              fontSize: 14,
+              color: (product.stock_quantity ?? 0) > 0 ? "#666" : "#ff6b6b",
+              marginTop: 12,
+              textAlign: "center",
+            }}
+          >
+            {(product.stock_quantity ?? 0) > 0
+              ? `${product.stock_quantity} in stock`
+              : "Out of stock"}
+          </Text>
         </View>
 
         {/* Other Products */}
-        <View style={{ marginTop: 20 }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "bold",
-              marginBottom: 8,
-              marginLeft: 24,
-              fontFamily: "JakartaBold",
-            }}
-          >
-            Similar Products
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginTop: 8, marginLeft: 24, marginBottom: 20 }}
-          >
-            {(
-              productsByCategory[
-                categoryKey as keyof typeof productsByCategory
-              ] ?? []
-            )
-              .filter((item) => item.id !== product.id)
-              .map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={{
-                    backgroundColor: "#fff",
-                    borderRadius: 20,
-                    padding: 10,
-                    marginRight: 12,
-                    marginBottom: 10,
-                    elevation: 3,
-                    alignItems: "center",
-                    width: 120,
-                  }}
-                  onPress={() =>
-                    navigation.navigate("CakeDetails", {
-                      productId: item.id.toString(),
-                      categoryKey,
-                    })
-                  }
-                >
-                  <Image
-                    source={item.image}
-                    style={{ width: 80, height: 80, borderRadius: 12 }}
-                  />
-                  <Text
+        {cakesData && cakesData.length > 1 && (
+          <View style={{ marginTop: 20 }}>
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: "bold",
+                marginBottom: 8,
+                marginLeft: 24,
+                fontFamily: "JakartaBold",
+              }}
+            >
+              Similar Products
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 8, marginLeft: 24, marginBottom: 20 }}
+            >
+              {cakesData
+                .filter((item) => item.id !== product?.id)
+                .slice(0, 5) // Show only first 5 similar products
+                .map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
                     style={{
-                      marginTop: 8,
-                      fontWeight: "bold",
-                      textAlign: "center",
+                      backgroundColor: "#fff",
+                      borderRadius: 20,
+                      padding: 10,
+                      marginRight: 12,
+                      marginBottom: 10,
+                      elevation: 3,
+                      alignItems: "center",
+                      width: 120,
                     }}
+                    onPress={() =>
+                      navigation.push("CakeDetails", {
+                        productId: item.id,
+                        categoryKey: item.category,
+                      })
+                    }
                   >
-                    {item.name}
-                  </Text>
-                  <Text style={{ color: "#FDAAAA", fontWeight: "bold" }}>
-                    {"price" in item && typeof item.price === "number"
-                      ? `LKR ${item.price.toFixed(2)}`
-                      : ""}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-          </ScrollView>
-        </View>
+                    <Image
+                      source={
+                        item.image_url
+                          ? { uri: item.image_url }
+                          : require("../../assets/products/cake1.png")
+                      }
+                      style={{ width: 80, height: 80, borderRadius: 12 }}
+                    />
+                    <Text
+                      style={{
+                        marginTop: 8,
+                        fontWeight: "bold",
+                        textAlign: "center",
+                        fontSize: 12,
+                      }}
+                      numberOfLines={2}
+                    >
+                      {item.cake_name}
+                    </Text>
+                    <Text
+                      style={{
+                        color: "#FDAAAA",
+                        fontWeight: "bold",
+                        marginTop: 4,
+                      }}
+                    >
+                      LKR{" "}
+                      {typeof item.price_lkr === "string"
+                        ? parseFloat(item.price_lkr).toFixed(2)
+                        : item.price_lkr.toFixed(2)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </ScrollView>
+          </View>
+        )}
       </ScrollView>
     </>
   );

@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: Request) {
   try {
-    const { amount, currency = "usd", customer_id } = await request.json();
+    const { amount, currency = "lkr", customer_id } = await request.json();
 
     if (!amount) {
       return Response.json({ error: "Amount is required" }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       {
         error: error instanceof Error ? error.message : "An error occurred",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

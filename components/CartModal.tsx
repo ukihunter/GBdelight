@@ -27,7 +27,7 @@ const CartModal: React.FC<CartModalProps> = ({
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   const renderCartItem = ({ item }: { item: CartItem }) => (
@@ -68,7 +68,7 @@ const CartModal: React.FC<CartModalProps> = ({
           {item.name}
         </Text>
         <Text style={{ fontSize: 14, color: "#FDAAAA", fontWeight: "bold" }}>
-          ${item.price.toFixed(2)} x {item.quantity}
+          LKR {item.price.toFixed(2)} x {item.quantity}
         </Text>
       </View>
       <TouchableOpacity
@@ -210,7 +210,7 @@ const CartModal: React.FC<CartModalProps> = ({
                         color: "#FDAAAA",
                       }}
                     >
-                      ${totalPrice.toFixed(2)}
+                      LKR {totalPrice.toFixed(2)}
                     </Text>
                   </View>
 
