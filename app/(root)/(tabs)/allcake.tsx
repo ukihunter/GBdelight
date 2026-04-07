@@ -71,11 +71,11 @@ const AllCake = () => {
 
   // Debug logging
   useEffect(() => {
-    console.log("=== AllCake Debug ===");
-    console.log("Loading:", loading);
-    console.log("Error:", error);
-    console.log("CakesData:", cakesData);
-    console.log("SelectedCategory:", selectedCategory);
+    // console.log("=== AllCake Debug ===");
+    // console.log("Loading:", loading);
+    // console.log("Error:", error);
+    // console.log("CakesData:", cakesData);
+    //console.log("SelectedCategory:", selectedCategory);
   }, [cakesData, loading, error, selectedCategory]);
 
   // Map database category to our category keys

@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     `;
 
     // Debug: Log first item to check structure
-    console.log("API Response Sample:", cakes[0]);
+    //  console.log("API Response Sample:", cakes[0]);
 
     // Ensure all required fields have defaults
     const sanitizedCakes = cakes.map((cake: any) => ({
