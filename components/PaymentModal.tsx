@@ -42,7 +42,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         },
         body: JSON.stringify({
           amount: amount,
-          currency: "lkr", // Change this to your preferred currency
+          currency: "lkr",
         }),
       });
 

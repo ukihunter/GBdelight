@@ -171,6 +171,48 @@ const Home = () => {
   const handleDestinationPress = () => {
     console.log("Destination input pressed");
   };
+
+  // Save order to database after payment
+  const saveOrder = async (paymentIntentId: string) => {
+    try {
+      const response = await fetch("/(api)/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: paymentIntentId,
+          customer_name: userDetails?.name,
+          customer_email:
+            user?.emailAddresses?.[0]?.emailAddress ?? "guest@example.com",
+          customer_phone: userDetails?.mobile,
+          delivery_address: {
+            address: userDetails?.address,
+            postalCode: userDetails?.postalCode,
+            nearestTown: userDetails?.nearestTown,
+          },
+          items: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          total_amount: cartTotal,
+          status: "pending",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save order: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Order saved successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("Error saving order:", error);
+      throw error;
+    }
+  };
+
   const width = Dimensions.get("window").width;
   const ads = [
     { id: 1, image: require("../../../assets/add/add1.png") }, // local image
@@ -599,25 +641,43 @@ const Home = () => {
               // Handle successful payment
               console.log("Payment successful:", paymentIntentId);
 
-              // Clear cart and close all modals
-              clearCart();
-              setConfirmVisible(false);
-              setPaymentVisible(false);
-              setCartVisible(false);
-              setUserDetails(null);
+              // Save order to database
+              saveOrder(paymentIntentId)
+                .then(() => {
+                  // Clear cart and close all modals
+                  clearCart();
+                  setConfirmVisible(false);
+                  setPaymentVisible(false);
+                  setCartVisible(false);
+                  setUserDetails(null);
 
-              // Show success message
-              showMessage({
-                message: "Payment Successful! ",
-                description:
-                  "Your order has been placed successfully. Thank you for your purchase!",
-                type: "success",
-                backgroundColor: "#4CAF50",
-                color: "#fff",
-                icon: "success",
-                duration: 4000,
-                position: "top",
-              });
+                  // Show success message
+                  showMessage({
+                    message: "Payment Successful! ",
+                    description:
+                      "Your order has been placed successfully. Thank you for your purchase!",
+                    type: "success",
+                    backgroundColor: "#4CAF50",
+                    color: "#fff",
+                    icon: "success",
+                    duration: 4000,
+                    position: "top",
+                  });
+                })
+                .catch((error) => {
+                  console.error("Order save failed:", error);
+                  showMessage({
+                    message: "Order Failed",
+                    description:
+                      "Payment succeeded but order was not saved. Please contact support.",
+                    type: "danger",
+                    backgroundColor: "#ff6b6b",
+                    color: "#fff",
+                    icon: "danger",
+                    duration: 4000,
+                    position: "top",
+                  });
+                });
             }}
           />
         )}
