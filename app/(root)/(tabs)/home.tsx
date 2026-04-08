@@ -2,11 +2,10 @@ import GoogleTextInput from "@/components/GoogleTextInput";
 import { icons } from "@/constants";
 import { useFetch } from "@/lib/fetch";
 import { useUser } from "@clerk/clerk-expo";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
-import React, { useMemo, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -50,20 +49,12 @@ type Product = {
   image_url?: string;
 };
 
-type RootStackParamList = {
-  CakeDetails: {
-    productId: number;
-    categoryKey: string;
-  };
-};
-
 const Home = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     categories[0]?.key || null,
   );
-  const scrollY = useRef(new Animated.Value(0)).current;
   const { isLoaded, isSignedIn, user } = useUser();
   const { cart, clearCart } = useCart();
   const [cartVisible, setCartVisible] = useState(false);
@@ -140,8 +131,8 @@ const Home = () => {
     return categories.filter((cat) => fetchedCategoryKeys.includes(cat.key));
   }, [cakesData]);
 
-  // Set default category on first load
-  useMemo(() => {
+  // Keep selected category valid when available categories change.
+  useEffect(() => {
     if (uniqueCategories.length > 0) {
       if (
         !selectedCategory ||
@@ -150,7 +141,7 @@ const Home = () => {
         setSelectedCategory(uniqueCategories[0].key);
       }
     }
-  }, [uniqueCategories]);
+  }, [uniqueCategories, selectedCategory]);
 
   // Calculate cart total
   const cartTotal = cart.reduce(
@@ -458,9 +449,12 @@ const Home = () => {
                             alignItems: "center",
                           }}
                           onPress={() =>
-                            navigation.navigate("CakeDetails", {
-                              productId: product.id,
-                              categoryKey: selectedCategory,
+                            router.push({
+                              pathname: "/(root)/CakeDetails",
+                              params: {
+                                productId: String(product.id),
+                                categoryKey: selectedCategory || "cake",
+                              },
                             })
                           }
                         >

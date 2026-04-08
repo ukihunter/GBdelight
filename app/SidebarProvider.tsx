@@ -52,8 +52,8 @@ export const useSidebar = () => useContext(SidebarContext);
 const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const { signOut } = useClerk();
   const router = useRouter();
+  const { signOut } = useClerk();
   React.useEffect(() => {
     if (visible) {
       Animated.parallel([

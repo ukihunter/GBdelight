@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -33,9 +34,6 @@ const getApiUrl = (path: string) => {
 
 const AIEvaluate = () => {
   const { user } = useUser();
-  const [activeTab, setActiveTab] = useState<"generate" | "preview">(
-    "generate",
-  );
   const [age, setAge] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);
   const [newFavorite, setNewFavorite] = useState("");
@@ -43,7 +41,7 @@ const AIEvaluate = () => {
   const [generatedDesign, setGeneratedDesign] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
-  const [designId, setDesignId] = useState<number | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Common favorites suggestions
   const favoritesSuggestions = [
@@ -130,12 +128,11 @@ const AIEvaluate = () => {
           age,
           favorites,
           notes: additionalNotes,
-          imageUrl: data.data.imageUrl,
+          imageDataUrl: data.data.imageDataUrl,
           description: data.data.description,
           prompt: data.data.prompt,
         });
-        setDesignId(data.data.designId);
-        setActiveTab("preview");
+        setShowImageModal(true);
       } else {
         throw new Error(data.error || "Failed to generate design");
       }
@@ -169,23 +166,35 @@ const AIEvaluate = () => {
   };
 
   const handleRequestCake = async () => {
-    if (!designId) {
-      alert("Design ID not found");
+    if (!generatedDesign?.imageDataUrl || !generatedDesign?.prompt) {
+      alert("Generate a design first");
+      return;
+    }
+
+    if (!user?.id) {
+      alert("Please sign in before requesting a design");
       return;
     }
 
     setIsRequesting(true);
     try {
+      const requestBody: Record<string, string> = {
+        userId: user.id,
+        prompt: generatedDesign.prompt,
+        imageDataUrl: generatedDesign.imageDataUrl,
+        description: generatedDesign.description,
+      };
+
+      if (additionalNotes.trim()) {
+        requestBody.orderNotes = additionalNotes.trim();
+      }
+
       const response = await fetch(getApiUrl("/request-ai-cake"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          userId: user?.id,
-          designId,
-          orderNotes: additionalNotes,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -206,24 +215,23 @@ const AIEvaluate = () => {
 
       const data = await response.json();
 
-      if (data.success) {
-        alert(
-          "Cake design requested successfully! Admin will review and contact you soon.",
-        );
-        // Reset form
-        setAge("");
-        setFavorites([]);
-        setAdditionalNotes("");
-        setGeneratedDesign(null);
-        setDesignId(null);
-        setActiveTab("generate");
-      } else {
+      if (!data.success) {
         throw new Error(data.error || "Failed to request cake");
       }
-    } catch (error) {
+
       alert(
-        `Error requesting cake: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "Your cake design request has been sent successfully. Admin will review it soon.",
       );
+      setShowImageModal(false);
+      setAge("");
+      setFavorites([]);
+      setNewFavorite("");
+      setAdditionalNotes("");
+      setGeneratedDesign(null);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      alert(`Error requesting cake: ${errorMessage}`);
       console.error("Request error:", error);
     } finally {
       setIsRequesting(false);
@@ -251,371 +259,221 @@ const AIEvaluate = () => {
         </Text>
       </View>
 
-      {/* Tab Navigation */}
-      <View className="flex-row bg-pink-50 border-b border-pink-200">
-        <Pressable
-          onPress={() => setActiveTab("generate")}
-          className={`flex-1 py-4 border-b-2 flex-row items-center justify-center ${
-            activeTab === "generate"
-              ? "border-pink-600 bg-white"
-              : "border-transparent"
-          }`}
-        >
-          <MaterialCommunityIcons
-            name="pencil"
-            size={18}
-            color={activeTab === "generate" ? "#ec4899" : "#9ca3af"}
-            style={{ marginRight: 8 }}
-          />
-          <Text
-            className={`font-JakartaSemiBold ${
-              activeTab === "generate"
-                ? "text-pink-600 text-base"
-                : "text-gray-500 text-sm"
-            }`}
-          >
-            Generate Cake
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setActiveTab("preview")}
-          disabled={!generatedDesign}
-          className={`flex-1 py-4 border-b-2 flex-row items-center justify-center ${
-            activeTab === "preview"
-              ? "border-pink-600 bg-white"
-              : "border-transparent"
-          } ${!generatedDesign ? "opacity-50" : ""}`}
-        >
-          <MaterialCommunityIcons
-            name="eye"
-            size={18}
-            color={activeTab === "preview" ? "#ec4899" : "#9ca3af"}
-            style={{ marginRight: 8 }}
-          />
-          <Text
-            className={`font-JakartaSemiBold ${
-              activeTab === "preview"
-                ? "text-pink-600 text-base"
-                : "text-gray-500 text-sm"
-            }`}
-          >
-            Your Design
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* Content Area */}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
-        {activeTab === "generate" ? (
-          // Generate Tab
-          <View className="p-4">
-            {/* Age Section */}
-            <View className="mb-6">
-              <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-3">
-                1. What`s Your Age?
-              </Text>
-              <View className="bg-pink-50 rounded-2xl border border-pink-200 overflow-hidden">
-                <TextInput
-                  placeholder="Enter your age"
-                  placeholderTextColor="#d946ef"
-                  value={age}
-                  onChangeText={setAge}
-                  keyboardType="number-pad"
-                  className="px-4 py-3 text-base font-Jakarta text-gray-800"
-                  maxLength={3}
-                />
+        <View className="p-4">
+          {/* Age Section */}
+          <View className="mb-6">
+            <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-3">
+              1. What`s Your Age?
+            </Text>
+            <View className="bg-pink-50 rounded-2xl border border-pink-200 overflow-hidden">
+              <TextInput
+                placeholder="Enter your age"
+                placeholderTextColor="#d946ef"
+                value={age}
+                onChangeText={setAge}
+                keyboardType="number-pad"
+                className="px-4 py-3 text-base font-Jakarta text-gray-800"
+                maxLength={3}
+              />
+            </View>
+          </View>
+
+          {/* Favorites Section */}
+          <View className="mb-6">
+            <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-3">
+              2. Your Favorites & Interests
+            </Text>
+
+            {favorites.length > 0 && (
+              <View className="mb-4 bg-pink-100 rounded-2xl p-3">
+                <View className="flex-row flex-wrap gap-2">
+                  {favorites.map((fav) => (
+                    <View
+                      key={fav}
+                      className="bg-pink-600 rounded-full px-3 py-2 flex-row items-center"
+                    >
+                      <Text className="text-white font-Jakarta text-sm mr-2">
+                        {fav}
+                      </Text>
+                      <Pressable onPress={() => removeFavorite(fav)}>
+                        <MaterialCommunityIcons
+                          name="close"
+                          size={16}
+                          color="white"
+                        />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
               </View>
+            )}
+
+            <View className="mb-4 bg-pink-50 rounded-2xl border border-pink-200 overflow-hidden flex-row">
+              <TextInput
+                placeholder="Add custom interest..."
+                placeholderTextColor="#d946ef"
+                value={newFavorite}
+                onChangeText={setNewFavorite}
+                className="flex-1 px-4 py-3 font-Jakarta text-gray-800"
+              />
+              <TouchableOpacity
+                onPress={addCustomFavorite}
+                className="px-4 py-3 bg-pink-600 items-center justify-center"
+              >
+                <MaterialCommunityIcons name="plus" size={20} color="white" />
+              </TouchableOpacity>
             </View>
 
-            {/* Favorites Section */}
-            <View className="mb-6">
-              <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-3">
-                2. Your Favorites & Interests
-              </Text>
-
-              {/* Selected Favorites */}
-              {favorites.length > 0 && (
-                <View className="mb-4 bg-pink-100 rounded-2xl p-3">
-                  <View className="flex-row flex-wrap gap-2">
-                    {favorites.map((fav) => (
-                      <View
-                        key={fav}
-                        className="bg-pink-600 rounded-full px-3 py-2 flex-row items-center"
-                      >
-                        <Text className="text-white font-Jakarta text-sm mr-2">
-                          {fav}
-                        </Text>
-                        <Pressable onPress={() => removeFavorite(fav)}>
-                          <MaterialCommunityIcons
-                            name="close"
-                            size={16}
-                            color="white"
-                          />
-                        </Pressable>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Custom Input */}
-              <View className="mb-4 bg-pink-50 rounded-2xl border border-pink-200 overflow-hidden flex-row">
-                <TextInput
-                  placeholder="Add custom interest..."
-                  placeholderTextColor="#d946ef"
-                  value={newFavorite}
-                  onChangeText={setNewFavorite}
-                  className="flex-1 px-4 py-3 font-Jakarta text-gray-800"
-                />
-                <TouchableOpacity
-                  onPress={addCustomFavorite}
-                  className="px-4 py-3 bg-pink-600 items-center justify-center"
+            <Text className="text-sm font-Jakarta text-gray-600 mb-3">
+              Select from suggestions:
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {favoritesSuggestions.map((suggestion) => (
+                <Pressable
+                  key={suggestion}
+                  onPress={() => toggleFavorite(suggestion)}
+                  className={`px-4 py-2 rounded-full border-2 ${
+                    favorites.includes(suggestion)
+                      ? "bg-pink-600 border-pink-600"
+                      : "bg-white border-pink-300"
+                  }`}
                 >
-                  <MaterialCommunityIcons name="plus" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Suggestions Grid */}
-              <Text className="text-sm font-Jakarta text-gray-600 mb-3">
-                Select from suggestions:
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                {favoritesSuggestions.map((suggestion) => (
-                  <Pressable
-                    key={suggestion}
-                    onPress={() => toggleFavorite(suggestion)}
-                    className={`px-4 py-2 rounded-full border-2 ${
+                  <Text
+                    className={`font-Jakarta text-sm ${
                       favorites.includes(suggestion)
-                        ? "bg-pink-600 border-pink-600"
-                        : "bg-white border-pink-300"
+                        ? "text-white"
+                        : "text-pink-600"
                     }`}
                   >
-                    <Text
-                      className={`font-Jakarta text-sm ${
-                        favorites.includes(suggestion)
-                          ? "text-white"
-                          : "text-pink-600"
-                      }`}
-                    >
-                      {suggestion}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+                    {suggestion}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
+          </View>
 
-            {/* Additional Notes Section */}
-            <View className="mb-6">
-              <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-3">
-                3. Any Additional Notes?
-              </Text>
-              <View className="bg-pink-50 rounded-2xl border border-pink-200 overflow-hidden">
-                <TextInput
-                  placeholder="Tell us more about your dream cake... (e.g., specific colors, themes, special requests)"
-                  placeholderTextColor="#d946ef"
-                  value={additionalNotes}
-                  onChangeText={setAdditionalNotes}
-                  multiline
-                  numberOfLines={5}
-                  textAlignVertical="top"
-                  className="px-4 py-3 text-base font-Jakarta text-gray-800"
-                  maxLength={300}
+          {/* Additional Notes Section */}
+          <View className="mb-6">
+            <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-3">
+              3. Any Additional Notes?
+            </Text>
+            <View className="bg-pink-50 rounded-2xl border border-pink-200 overflow-hidden">
+              <TextInput
+                placeholder="Tell us more about your dream cake... (e.g., specific colors, themes, special requests)"
+                placeholderTextColor="#d946ef"
+                value={additionalNotes}
+                onChangeText={setAdditionalNotes}
+                multiline
+                numberOfLines={5}
+                textAlignVertical="top"
+                className="px-4 py-3 text-base font-Jakarta text-gray-800"
+                maxLength={300}
+              />
+            </View>
+            <Text className="text-xs font-Jakarta text-gray-500 mt-2">
+              {additionalNotes.length}/300
+            </Text>
+          </View>
+
+          {/* Generate Button */}
+          <TouchableOpacity
+            onPress={handleGenerateDesign}
+            disabled={isLoading}
+            className="bg-pink-600 rounded-2xl py-4 mb-20 flex-row items-center justify-center active:opacity-80 disabled:opacity-60"
+          >
+            {isLoading ? (
+              <>
+                <ActivityIndicator color="white" style={{ marginRight: 10 }} />
+                <View>
+                  <Text className="text-white text-lg font-JakartaExtraBold">
+                    Creating Your Design...
+                  </Text>
+                  <Text className="text-pink-100 text-xs font-Jakarta">
+                    This may take 30-60 seconds
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="flash"
+                  size={20}
+                  color="white"
+                  style={{ marginRight: 8 }}
+                />
+                <Text className="text-white text-lg font-JakartaExtraBold">
+                  Generate My Design
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      <Modal
+        visible={showImageModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageModal(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.7)",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 24,
+          }}
+        >
+          <View className="w-full max-w-md bg-white rounded-3xl p-5">
+            <Text className="text-xl font-JakartaExtraBold text-gray-900 mb-2 text-center">
+              Your Cake Design
+            </Text>
+            <Text className="text-sm font-Jakarta text-gray-600 mb-4 text-center">
+              Here is the AI-generated image preview.
+            </Text>
+
+            {generatedDesign?.imageDataUrl ? (
+              <Image
+                source={{ uri: generatedDesign.imageDataUrl }}
+                style={{
+                  width: "100%",
+                  height: 280,
+                  borderRadius: 20,
+                }}
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="h-64 rounded-2xl bg-pink-100 items-center justify-center">
+                <MaterialCommunityIcons
+                  name="image"
+                  size={48}
+                  color="#ec4899"
                 />
               </View>
-              <Text className="text-xs font-Jakarta text-gray-500 mt-2">
-                {additionalNotes.length}/300
-              </Text>
-            </View>
+            )}
 
-            {/* Generate Button */}
             <TouchableOpacity
-              onPress={handleGenerateDesign}
-              disabled={isLoading}
-              className="bg-pink-600 rounded-2xl py-4 mb-20 flex-row items-center justify-center active:opacity-80 disabled:opacity-60"
+              onPress={handleRequestCake}
+              disabled={isRequesting}
+              className="mt-5 bg-pink-600 rounded-2xl py-4 items-center justify-center disabled:opacity-60"
             >
-              {isLoading ? (
-                <>
-                  <ActivityIndicator
-                    color="white"
-                    style={{ marginRight: 10 }}
-                  />
-                  <View>
-                    <Text className="text-white text-lg font-JakartaExtraBold">
-                      Creating Your Design...
-                    </Text>
-                    <Text className="text-pink-100 text-xs font-Jakarta">
-                      This may take 30-60 seconds
-                    </Text>
-                  </View>
-                </>
+              {isRequesting ? (
+                <ActivityIndicator color="white" />
               ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="flash"
-                    size={20}
-                    color="white"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text className="text-white text-lg font-JakartaExtraBold">
-                    Generate My Design
-                  </Text>
-                </>
+                <Text className="text-white text-base font-JakartaExtraBold">
+                  Request Design
+                </Text>
               )}
             </TouchableOpacity>
           </View>
-        ) : (
-          // Preview Tab
-          <View className="p-4">
-            {generatedDesign && (
-              <>
-                <View className="bg-gradient-to-b from-pink-50 to-pink-100 rounded-3xl p-6 mb-6 shadow">
-                  {/* AI Generated Image */}
-                  {generatedDesign.imageUrl ? (
-                    <Image
-                      source={{ uri: generatedDesign.imageUrl }}
-                      style={{
-                        width: "100%",
-                        height: 280,
-                        borderRadius: 16,
-                        marginBottom: 24,
-                      }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View className="bg-pink-200 rounded-2xl h-64 items-center justify-center mb-6">
-                      <MaterialCommunityIcons
-                        name="image"
-                        size={48}
-                        color="#ec4899"
-                        style={{ marginBottom: 12 }}
-                      />
-                      <Text className="text-gray-700 font-JakartaSemiBold text-center">
-                        Your AI Generated Cake Design
-                      </Text>
-                      <Text className="text-gray-500 font-Jakarta text-sm mt-2 text-center">
-                        (Image will be displayed here)
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Design Details */}
-                  <View className="bg-white rounded-2xl p-4 mb-4">
-                    <Text className="text-lg font-JakartaSemiBold text-gray-800 mb-4">
-                      Design Details
-                    </Text>
-
-                    <View className="mb-4 pb-4 border-b border-pink-200">
-                      <Text className="text-sm font-Jakarta text-gray-600 mb-1">
-                        Age
-                      </Text>
-                      <Text className="text-base font-JakartaSemiBold text-pink-600">
-                        {generatedDesign.age} years old
-                      </Text>
-                    </View>
-
-                    <View className="mb-4 pb-4 border-b border-pink-200">
-                      <Text className="text-sm font-Jakarta text-gray-600 mb-2">
-                        Favorites & Interests
-                      </Text>
-                      <View className="flex-row flex-wrap gap-2">
-                        {generatedDesign.favorites.map((fav: string) => (
-                          <View
-                            key={fav}
-                            className="bg-pink-100 rounded-full px-3 py-1"
-                          >
-                            <Text className="text-sm font-Jakarta text-pink-700">
-                              {fav}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-
-                    {generatedDesign.notes && (
-                      <View>
-                        <Text className="text-sm font-Jakarta text-gray-600 mb-1">
-                          Additional Notes
-                        </Text>
-                        <Text className="text-base font-Jakarta text-gray-700">
-                          {generatedDesign.notes}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Action Buttons */}
-                  <View className="flex-row gap-3">
-                    <TouchableOpacity
-                      onPress={handleRequestCake}
-                      disabled={isRequesting}
-                      className="flex-1 bg-pink-600 rounded-xl py-3 active:opacity-80 disabled:opacity-60 flex-row items-center justify-center"
-                    >
-                      {isRequesting ? (
-                        <>
-                          <ActivityIndicator
-                            color="white"
-                            size="small"
-                            style={{ marginRight: 6 }}
-                          />
-                          <Text className="text-white text-center font-JakartaSemiBold">
-                            Requesting...
-                          </Text>
-                        </>
-                      ) : (
-                        <>
-                          <MaterialCommunityIcons
-                            name="check-circle"
-                            size={18}
-                            color="white"
-                            style={{ marginRight: 6 }}
-                          />
-                          <Text className="text-white text-center font-JakartaSemiBold">
-                            Request Cake
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity className="flex-1 bg-pink-100 rounded-xl py-3 active:opacity-80 flex-row items-center justify-center">
-                      <MaterialCommunityIcons
-                        name="share-variant"
-                        size={18}
-                        color="#ec4899"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text className="text-pink-600 text-center font-JakartaSemiBold">
-                        Share
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Generate Another Button */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setActiveTab("generate");
-                  }}
-                  className="bg-white border-2 border-pink-600 rounded-2xl py-3 flex-row items-center justify-center active:opacity-80"
-                >
-                  <MaterialCommunityIcons
-                    name="arrow-left"
-                    size={18}
-                    color="#ec4899"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text className="text-pink-600 text-center font-JakartaSemiBold text-base">
-                    Generate Another Design
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        )}
-      </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

@@ -1,6 +1,6 @@
 import { icons } from "@/constants";
 import { useFetch } from "@/lib/fetch";
-import { NavigationProp, useNavigation } from "@react-navigation/core";
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -40,15 +40,8 @@ type Product = {
   image_url?: string;
 };
 
-type RootStackParamList = {
-  CakeDetails: {
-    productId: number;
-    categoryKey: string;
-  };
-};
-
 const AllCake = () => {
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     categories[0]?.key || null,
@@ -229,9 +222,12 @@ const AllCake = () => {
                   alignItems: "center",
                 }}
                 onPress={() =>
-                  navigation.navigate("CakeDetails", {
-                    productId: product.id,
-                    categoryKey: selectedCategory,
+                  router.push({
+                    pathname: "/(root)/CakeDetails",
+                    params: {
+                      productId: String(product.id),
+                      categoryKey: selectedCategory || "cake",
+                    },
                   })
                 }
               >

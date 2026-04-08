@@ -1,8 +1,6 @@
 import { icons } from "@/constants";
 import { useFetch } from "@/lib/fetch";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import {
   ActivityIndicator,
@@ -39,22 +37,14 @@ type Product = {
   cake_code?: string;
 };
 
-type RootStackParamList = {
-  CakeDetails: { productId: number; categoryKey: string };
-  // ...other routes
-};
-
 const CakeDetails = () => {
-  const route = useRoute();
-  const navigation =
-    useNavigation<
-      NativeStackNavigationProp<RootStackParamList, "CakeDetails">
-    >();
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    productId?: string;
+    categoryKey?: string;
+  }>();
   const { addToCart } = useCart();
-  const { productId } = route.params as {
-    productId: number;
-    categoryKey: string;
-  };
+  const productId = Number(params.productId);
 
   // Fetch all cakes from database
   const {
@@ -102,7 +92,7 @@ const CakeDetails = () => {
           {error ? "Error loading product" : "Product not found."}
         </Text>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => router.back()}
           style={{
             backgroundColor: "#FDAAAA",
             paddingHorizontal: 24,
@@ -137,7 +127,7 @@ const CakeDetails = () => {
             }}
           />
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => router.back()}
             style={{
               position: "absolute",
               top: 40,
@@ -298,9 +288,12 @@ const CakeDetails = () => {
                       width: 120,
                     }}
                     onPress={() =>
-                      navigation.push("CakeDetails", {
-                        productId: item.id,
-                        categoryKey: item.category,
+                      router.push({
+                        pathname: "/(root)/CakeDetails",
+                        params: {
+                          productId: String(item.id),
+                          categoryKey: item.category,
+                        },
                       })
                     }
                   >

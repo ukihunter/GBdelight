@@ -1,15 +1,6 @@
-import { neon } from "@neondatabase/serverless";
-import crypto from "crypto";
-
-// Hugging Face API configuration
 const HF_API_TOKEN = process.env.HUGGING_FACE_API_KEY;
-// Using Lykon/DreamShaper - more reliable for specific image generation
-const HF_MODEL_ID = "Lykon/DreamShaper";
-
-// Cloudinary configuration
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+// stabilityai/sdxl-turbo is available on the free HF Inference API
+const HF_MODEL_ID = "stabilityai/sdxl-turbo";
 
 interface GenerationRequest {
   userId: string;
@@ -20,191 +11,112 @@ interface GenerationRequest {
 
 type PromptInput = Pick<GenerationRequest, "age" | "favorites" | "notes">;
 
-async function generateImageFromFallback(prompt: string): Promise<Buffer> {
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}`;
+function generatePrompt(data: PromptInput): string {
+  const favoritesList = data.favorites.join(", ");
+  return `A beautiful, delicious, professional cake design. Perfect for a ${data.age} year old. Style: ${favoritesList}. ${data.notes ? `Details: ${data.notes}` : ""} High quality, detailed, appetizing, bakery masterpiece.`;
+}
+
+// Pollinations.ai — free, no API key, reliable
+async function generateImageFromPollinations(prompt: string): Promise<Buffer> {
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true`;
+  console.log("Calling Pollinations.ai...");
+
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Fallback image API error: ${response.status}`);
+    throw new Error(`Pollinations error: ${response.status}`);
   }
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("image")) {
     const text = await response.text();
     throw new Error(
-      `Fallback returned non-image response: ${text.substring(0, 120)}`,
+      `Pollinations returned non-image: ${text.substring(0, 120)}`,
     );
   }
 
-  return Buffer.from(await response.arrayBuffer());
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.length === 0) throw new Error("Pollinations returned empty image");
+
+  console.log("Pollinations image generated, size:", buffer.length, "bytes");
+  return buffer;
 }
 
-// Generate prompt for Hugging Face
-function generatePrompt(data: PromptInput): string {
-  const favoritesList = data.favorites.join(", ");
-  const prompt = `A beautiful, delicious, professional cake design. Perfect for a ${data.age} year old. Style: ${favoritesList}. ${data.notes ? `Details: ${data.notes}` : ""} High quality, detailed, appetizing, bakery masterpiece.`;
-  return prompt;
-}
-
-// Call Hugging Face API to generate image with retry logic
+// Hugging Face — used only if Pollinations fails
 async function generateImageFromHuggingFace(
   prompt: string,
-  retries = 3,
+  retries = 2,
 ): Promise<Buffer> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(
-        `Calling Hugging Face (attempt ${attempt}/${retries}) with model:`,
-        HF_MODEL_ID,
+        `Calling HF (attempt ${attempt}/${retries}) with model: ${HF_MODEL_ID}`,
       );
 
       const response = await fetch(
         `https://api-inference.huggingface.co/models/${HF_MODEL_ID}`,
         {
+          method: "POST",
           headers: {
             Authorization: `Bearer ${HF_API_TOKEN}`,
+            "Content-Type": "application/json",
           },
-          method: "POST",
           body: JSON.stringify({ inputs: prompt }),
         },
       );
 
-      // Check content type
-      const contentType = response.headers.get("content-type");
-      console.log("Response content-type:", contentType);
-
-      // Read response body ONCE and store it
+      const contentType = response.headers.get("content-type") || "";
       const buffer = Buffer.from(await response.arrayBuffer());
 
       if (!response.ok) {
         const errorText = buffer.toString().substring(0, 200);
         console.error(`HF Error (${response.status}):`, errorText);
 
-        // Hugging Face legacy inference endpoint can return 410.
-        if (response.status === 410) {
-          console.log(
-            "Hugging Face endpoint unavailable, using fallback generator...",
-          );
-          return await generateImageFromFallback(prompt);
-        }
-
-        // If model is loading, retry
-        if (
-          response.status === 503 &&
-          errorText.includes("currently loading")
-        ) {
-          console.log("Model loading, waiting before retry...");
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+        if (response.status === 503 && errorText.includes("loading")) {
+          console.log("HF model loading, waiting 5s before retry...");
+          await new Promise((r) => setTimeout(r, 5000));
           continue;
         }
 
-        throw new Error(
-          `Hugging Face API error: ${response.status} - ${errorText}`,
-        );
+        throw new Error(`HF API error: ${response.status} - ${errorText}`);
       }
 
-      // Check if response is actually an image
-      if (!contentType || !contentType.includes("image")) {
-        console.error(
-          "Unexpected content type. Response:",
-          buffer.toString().substring(0, 300),
-        );
-        throw new Error(
-          `Expected image response, got: ${contentType || "unknown"}`,
-        );
+      if (!contentType.includes("image")) {
+        throw new Error(`HF returned non-image content-type: ${contentType}`);
       }
 
-      console.log("Image generated successfully, size:", buffer.length);
+      if (buffer.length === 0) throw new Error("HF returned empty image");
 
-      // Validate buffer is not empty
-      if (buffer.length === 0) {
-        throw new Error("Generated image buffer is empty");
-      }
-
+      console.log("HF image generated, size:", buffer.length, "bytes");
       return buffer;
     } catch (error) {
-      console.error(`Attempt ${attempt} failed:`, error);
-
-      if (attempt === retries) {
-        throw error;
-      }
-
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.error(`HF attempt ${attempt} failed:`, error);
+      if (attempt === retries) throw error;
+      await new Promise((r) => setTimeout(r, 2000));
     }
   }
 
-  throw new Error("Failed after all retry attempts");
+  throw new Error("HF failed after all retry attempts");
 }
 
-// Sign Cloudinary upload using server-side signature
-function signCloudinaryUpload(
-  publicId: string,
-  timestamp: number,
-): { signature: string; timestamp: number } {
-  const params = {
-    public_id: publicId,
-    timestamp: timestamp,
-  };
-
-  const paramsString = Object.entries(params)
-    .map(([k, v]) => `${k}=${v}`)
-    .sort()
-    .join("&");
-
-  const signature = crypto
-    .createHash("sha1")
-    .update(paramsString + CLOUDINARY_API_SECRET)
-    .digest("hex");
-
-  return { signature, timestamp };
-}
-
-// Upload image to Cloudinary with server-side signature
-async function uploadToCloudinary(imageBuffer: Buffer): Promise<string> {
+async function generateImage(prompt: string): Promise<Buffer> {
+  // Always try Pollinations first — it's free, no key needed, and reliable
   try {
-    const timestamp = Math.floor(Date.now() / 1000);
-    const publicId = `cake_designs/${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    const { signature } = signCloudinaryUpload(publicId, timestamp);
-
-    const formData = new FormData();
-    const blob = new Blob([new Uint8Array(imageBuffer)], { type: "image/png" });
-    formData.append("file", blob);
-    formData.append("public_id", publicId);
-    formData.append("api_key", CLOUDINARY_API_KEY || "");
-    formData.append("timestamp", timestamp.toString());
-    formData.append("signature", signature);
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      },
+    return await generateImageFromPollinations(prompt);
+  } catch (pollinationsError) {
+    console.warn(
+      "Pollinations failed, trying Hugging Face:",
+      pollinationsError,
     );
 
-    // Read response text first
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      console.error("Cloudinary Error:", responseText.substring(0, 200));
-      throw new Error(
-        `Cloudinary upload error: ${responseText.substring(0, 100)}`,
-      );
+    if (!HF_API_TOKEN) {
+      throw new Error("Both Pollinations and HF (no key configured) failed");
     }
 
-    // Parse JSON from the text we already read
-    const data = JSON.parse(responseText) as any;
-    console.log("Upload successful:", data.secure_url);
-    return data.secure_url;
-  } catch (error) {
-    console.error("Cloudinary upload error:", error);
-    throw error;
+    return await generateImageFromHuggingFace(prompt);
   }
 }
 
-// Main API handler
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerationRequest;
@@ -217,76 +129,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate environment variables
-    if (!HF_API_TOKEN) {
-      return Response.json(
-        {
-          success: false,
-          error: "Hugging Face API key not configured",
-        },
-        { status: 500 },
-      );
-    }
-
-    if (
-      !CLOUDINARY_CLOUD_NAME ||
-      !CLOUDINARY_API_KEY ||
-      !CLOUDINARY_API_SECRET
-    ) {
-      return Response.json(
-        {
-          success: false,
-          error: "Cloudinary configuration not complete",
-        },
-        { status: 500 },
-      );
-    }
-
-    // Validate input
     if (!age || !favorites || favorites.length === 0) {
       return Response.json(
-        {
-          success: false,
-          error: "Missing required fields: age, favorites",
-        },
+        { success: false, error: "Missing required fields: age, favorites" },
         { status: 400 },
       );
     }
 
-    // Step 1: Generate prompt
     const prompt = generatePrompt({ age, favorites, notes });
     console.log("Generated prompt:", prompt);
 
-    // Step 2: Generate image from Hugging Face
-    console.log("Calling Hugging Face API...");
-    const imageBuffer = await generateImageFromHuggingFace(prompt);
-    console.log("Image generated, size:", imageBuffer.length, "bytes");
+    const imageBuffer = await generateImage(prompt);
+    console.log("Image ready, size:", imageBuffer.length, "bytes");
 
-    // Step 3: Upload to Cloudinary
-    console.log("Uploading to Cloudinary...");
-    const imageUrl = await uploadToCloudinary(imageBuffer);
-
-    // Step 4: Save to database
-    const sql = neon(process.env.DATABASE_URL!);
     const description = `Age: ${age}, Interests: ${favorites.join(", ")}, Notes: ${notes || "None"}`;
-
-    const result = await sql`
-      INSERT INTO ai_cake_design_requests 
-      (user_id, prompt, generated_image_path, generated_description, status)
-      VALUES (${userId}, ${prompt}, ${imageUrl}, ${description}, 'pending')
-      RETURNING id, generated_image_path, generated_description
-    `;
-
-    console.log("Saved to database, design ID:", result[0].id);
+    const imageDataUrl = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
 
     return Response.json({
       success: true,
-      data: {
-        designId: result[0].id,
-        imageUrl: result[0].generated_image_path,
-        description: result[0].generated_description,
-        prompt: prompt,
-      },
+      data: { imageDataUrl, description, prompt },
     });
   } catch (error) {
     console.error("AI cake design generation error:", error);

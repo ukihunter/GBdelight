@@ -9,13 +9,13 @@ import { Image, ScrollView, Text, View } from "react-native";
 import { showMessage } from "react-native-flash-message";
 
 const SignIn = () => {
+  const router = useRouter();
   const [Form, Setform] = useState({
     email: "",
     password: "",
   });
 
   const { signIn, setActive, isLoaded } = useSignIn();
-  const router = useRouter();
 
   const onsignin = async () => {
     if (!isLoaded) {

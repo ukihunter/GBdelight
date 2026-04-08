@@ -1,6 +1,6 @@
 import CustomButton from "@/components/CustomButton";
 import { onboarding, onboarding as onboardingData } from "@/constants";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useRef } from "react";
 import {
   Image,
@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Swiper from "react-native-swiper";
 
 const Welcome = () => {
+  const router = useRouter();
   const swiperRef = useRef<Swiper>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
   const isLastSlide = activeIndex === onboarding.length - 1;
