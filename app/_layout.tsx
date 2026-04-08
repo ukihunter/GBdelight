@@ -9,7 +9,6 @@ import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { CartProvider } from "../components/CartProvider";
 import { StripeProvider } from "../components/StripeProvider";
-import { SidebarProvider } from "./SidebarProvider";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -41,13 +40,11 @@ export default function RootLayout() {
         <FlashMessage floating={true} />
 
         <CartProvider>
-          <SidebarProvider>
-            <Stack>
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="(root)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            </Stack>
-          </SidebarProvider>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(root)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          </Stack>
         </CartProvider>
       </StripeProvider>
     </ClerkProvider>

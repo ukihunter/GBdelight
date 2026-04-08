@@ -1,7 +1,10 @@
+import { useUser } from "@clerk/clerk-expo";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -12,7 +15,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const getApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const envBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+
+  if (envBaseUrl) {
+    return `${envBaseUrl}${normalizedPath}`;
+  }
+
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return `${window.location.origin}${normalizedPath}`;
+  }
+
+  // For Expo Go on physical Android over USB, adb reverse maps localhost:8081.
+  return `http://localhost:8081${normalizedPath}`;
+};
+
 const AIEvaluate = () => {
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState<"generate" | "preview">(
     "generate",
   );
@@ -22,6 +42,8 @@ const AIEvaluate = () => {
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [generatedDesign, setGeneratedDesign] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [designId, setDesignId] = useState<number | null>(null);
 
   // Common favorites suggestions
   const favoritesSuggestions = [
@@ -70,28 +92,141 @@ const AIEvaluate = () => {
 
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call to your backend
-      // const response = await fetch('/api/generate-cake-design', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ age, favorites, notes: additionalNotes })
-      // });
-      // const data = await response.json();
+      // Call the AI cake design API
+      const response = await fetch(getApiUrl("/ai-cake-design"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          age,
+          favorites,
+          notes: additionalNotes,
+        }),
+      });
 
-      // Mock generated design for now
-      setTimeout(() => {
+      if (!response.ok) {
+        let errorMessage = "Failed to generate design";
+        try {
+          const responseText = await response.text();
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = responseText.substring(0, 100) || errorMessage;
+          }
+        } catch {
+          errorMessage = "Network error occurred";
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
         setGeneratedDesign({
           design: "AI Generated Cake Design",
           age,
           favorites,
           notes: additionalNotes,
-          timestamp: new Date(),
+          imageUrl: data.data.imageUrl,
+          description: data.data.description,
+          prompt: data.data.prompt,
         });
+        setDesignId(data.data.designId);
         setActiveTab("preview");
-        setIsLoading(false);
-      }, 1500);
+      } else {
+        throw new Error(data.error || "Failed to generate design");
+      }
     } catch (error) {
-      alert("Error generating design");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      console.error("Generation error:", error);
+
+      // Show helpful error messages
+      if (
+        errorMessage.includes("403") ||
+        errorMessage.includes("Unauthorized")
+      ) {
+        alert(
+          "Authentication failed. Please make sure you're logged in and try again.",
+        );
+      } else if (errorMessage.includes("503")) {
+        alert(
+          "AI service is temporarily busy. This can happen with free models. Try again in a few moments.",
+        );
+      } else if (errorMessage.includes("Model loading")) {
+        alert(
+          "AI model is loading for the first time. This may take 30-60 seconds. Please wait and try again.",
+        );
+      } else {
+        alert(`Error: ${errorMessage}`);
+      }
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRequestCake = async () => {
+    if (!designId) {
+      alert("Design ID not found");
+      return;
+    }
+
+    setIsRequesting(true);
+    try {
+      const response = await fetch(getApiUrl("/request-ai-cake"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          designId,
+          orderNotes: additionalNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Failed to request cake";
+        try {
+          const responseText = await response.text();
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = responseText.substring(0, 100) || errorMessage;
+          }
+        } catch {
+          errorMessage = "Network error occurred";
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(
+          "Cake design requested successfully! Admin will review and contact you soon.",
+        );
+        // Reset form
+        setAge("");
+        setFavorites([]);
+        setAdditionalNotes("");
+        setGeneratedDesign(null);
+        setDesignId(null);
+        setActiveTab("generate");
+      } else {
+        throw new Error(data.error || "Failed to request cake");
+      }
+    } catch (error) {
+      alert(
+        `Error requesting cake: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+      console.error("Request error:", error);
+    } finally {
+      setIsRequesting(false);
     }
   };
 
@@ -309,9 +444,14 @@ const AIEvaluate = () => {
                     color="white"
                     style={{ marginRight: 10 }}
                   />
-                  <Text className="text-white text-lg font-JakartaExtraBold">
-                    Generating...
-                  </Text>
+                  <View>
+                    <Text className="text-white text-lg font-JakartaExtraBold">
+                      Creating Your Design...
+                    </Text>
+                    <Text className="text-pink-100 text-xs font-Jakarta">
+                      This may take 30-60 seconds
+                    </Text>
+                  </View>
                 </>
               ) : (
                 <>
@@ -334,21 +474,34 @@ const AIEvaluate = () => {
             {generatedDesign && (
               <>
                 <View className="bg-gradient-to-b from-pink-50 to-pink-100 rounded-3xl p-6 mb-6 shadow">
-                  {/* Placeholder for AI Generated Image */}
-                  <View className="bg-pink-200 rounded-2xl h-64 items-center justify-center mb-6">
-                    <MaterialCommunityIcons
-                      name="image"
-                      size={48}
-                      color="#ec4899"
-                      style={{ marginBottom: 12 }}
+                  {/* AI Generated Image */}
+                  {generatedDesign.imageUrl ? (
+                    <Image
+                      source={{ uri: generatedDesign.imageUrl }}
+                      style={{
+                        width: "100%",
+                        height: 280,
+                        borderRadius: 16,
+                        marginBottom: 24,
+                      }}
+                      resizeMode="cover"
                     />
-                    <Text className="text-gray-700 font-JakartaSemiBold text-center">
-                      Your AI Generated Cake Design
-                    </Text>
-                    <Text className="text-gray-500 font-Jakarta text-sm mt-2 text-center">
-                      (Image will be displayed here)
-                    </Text>
-                  </View>
+                  ) : (
+                    <View className="bg-pink-200 rounded-2xl h-64 items-center justify-center mb-6">
+                      <MaterialCommunityIcons
+                        name="image"
+                        size={48}
+                        color="#ec4899"
+                        style={{ marginBottom: 12 }}
+                      />
+                      <Text className="text-gray-700 font-JakartaSemiBold text-center">
+                        Your AI Generated Cake Design
+                      </Text>
+                      <Text className="text-gray-500 font-Jakarta text-sm mt-2 text-center">
+                        (Image will be displayed here)
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Design Details */}
                   <View className="bg-white rounded-2xl p-4 mb-4">
@@ -397,16 +550,35 @@ const AIEvaluate = () => {
 
                   {/* Action Buttons */}
                   <View className="flex-row gap-3">
-                    <TouchableOpacity className="flex-1 bg-pink-600 rounded-xl py-3 active:opacity-80 flex-row items-center justify-center">
-                      <MaterialCommunityIcons
-                        name="content-save"
-                        size={18}
-                        color="white"
-                        style={{ marginRight: 6 }}
-                      />
-                      <Text className="text-white text-center font-JakartaSemiBold">
-                        Save Design
-                      </Text>
+                    <TouchableOpacity
+                      onPress={handleRequestCake}
+                      disabled={isRequesting}
+                      className="flex-1 bg-pink-600 rounded-xl py-3 active:opacity-80 disabled:opacity-60 flex-row items-center justify-center"
+                    >
+                      {isRequesting ? (
+                        <>
+                          <ActivityIndicator
+                            color="white"
+                            size="small"
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text className="text-white text-center font-JakartaSemiBold">
+                            Requesting...
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialCommunityIcons
+                            name="check-circle"
+                            size={18}
+                            color="white"
+                            style={{ marginRight: 6 }}
+                          />
+                          <Text className="text-white text-center font-JakartaSemiBold">
+                            Request Cake
+                          </Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                     <TouchableOpacity className="flex-1 bg-pink-100 rounded-xl py-3 active:opacity-80 flex-row items-center justify-center">
                       <MaterialCommunityIcons
