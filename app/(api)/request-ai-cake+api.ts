@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 interface RequestCakeBody {
   userId: string;
+  username: string;
   prompt: string;
   imageDataUrl: string;
   description: string;
@@ -73,7 +74,8 @@ async function uploadToCloudinary(imageDataUrl: string): Promise<string> {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as RequestCakeBody;
-    const { userId, prompt, imageDataUrl, description, orderNotes } = body;
+    const { userId, username, prompt, imageDataUrl, description, orderNotes } =
+      body;
     const trimmedOrderNotes = orderNotes?.trim();
 
     if (!userId) {
@@ -83,11 +85,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!prompt || !imageDataUrl || !description) {
+    if (!prompt || !imageDataUrl || !description || !username) {
       return Response.json(
         {
           success: false,
-          error: "Missing required fields: prompt, imageDataUrl, description",
+          error:
+            "Missing required fields: prompt, imageDataUrl, description, username",
         },
         { status: 400 },
       );
@@ -111,14 +114,14 @@ export async function POST(request: Request) {
     const insertResult = trimmedOrderNotes
       ? await sql`
           INSERT INTO ai_cake_design_requests
-          (user_id, prompt, generated_image_path, generated_description, admin_note, status)
-          VALUES (${userId}, ${prompt}, ${uploadedUrl}, ${description}, ${trimmedOrderNotes}, 'requested')
+          (user_id, username, prompt, generated_image_path, generated_description, admin_note, status)
+          VALUES (${userId}, ${username}, ${prompt}, ${uploadedUrl}, ${description}, ${trimmedOrderNotes}, 'requested')
           RETURNING id, generated_image_path, generated_description, status
         `
       : await sql`
           INSERT INTO ai_cake_design_requests
-          (user_id, prompt, generated_image_path, generated_description, status)
-          VALUES (${userId}, ${prompt}, ${uploadedUrl}, ${description}, 'requested')
+          (user_id, username, prompt, generated_image_path, generated_description, status)
+          VALUES (${userId}, ${username}, ${prompt}, ${uploadedUrl}, ${description}, 'requested')
           RETURNING id, generated_image_path, generated_description, status
         `;
 

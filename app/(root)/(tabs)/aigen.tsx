@@ -180,6 +180,7 @@ const AIEvaluate = () => {
     try {
       const requestBody: Record<string, string> = {
         userId: user.id,
+        username: user.username || "",
         prompt: generatedDesign.prompt,
         imageDataUrl: generatedDesign.imageDataUrl,
         description: generatedDesign.description,
