@@ -1,3 +1,5 @@
+import { neon } from "@neondatabase/serverless";
+
 const HF_API_TOKEN = process.env.HUGGING_FACE_API_KEY;
 // stabilityai/sdxl-turbo is available on the free HF Inference API
 const HF_MODEL_ID = "stabilityai/sdxl-turbo";
@@ -159,6 +161,67 @@ export async function POST(request: Request) {
             ? error.message
             : "Failed to generate cake design",
       },
+      { status: 500 },
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const sql = neon(process.env.DATABASE_URL!);
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+
+    if (!userId) {
+      return Response.json(
+        { error: "userId parameter is required" },
+        { status: 400 },
+      );
+    }
+
+    const aiRequests = await sql`
+      SELECT 
+        id,
+        user_id,
+        prompt,
+        generated_image_path,
+        generated_description,
+        status,
+        admin_note,
+        price_lkr,
+        created_at,
+        reviewed_at,
+        username
+      FROM ai_cake_design_requests
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+    `;
+
+    const sanitizedRequests = aiRequests.map((request: any) => ({
+      id: request.id,
+      user_id: request.user_id,
+      prompt: request.prompt,
+      generated_image_path: request.generated_image_path,
+      generated_description: request.generated_description,
+      status: request.status,
+      admin_note: request.admin_note,
+      price_lkr:
+        typeof request.price_lkr === "string"
+          ? parseFloat(request.price_lkr)
+          : request.price_lkr,
+      created_at: request.created_at,
+      reviewed_at: request.reviewed_at,
+      username: request.username,
+    }));
+
+    return Response.json({
+      success: true,
+      data: sanitizedRequests,
+    });
+  } catch (error) {
+    console.error("AI cake design fetch error:", error);
+    return Response.json(
+      { error: error instanceof Error ? error.message : "An error occurred" },
       { status: 500 },
     );
   }

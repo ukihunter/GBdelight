@@ -187,7 +187,7 @@ const Home = () => {
             quantity: item.quantity,
           })),
           total_amount: cartTotal,
-          status: "pending",
+          order_type: "normal",
         }),
       });
 

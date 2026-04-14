@@ -8,6 +8,9 @@ export default function AuthRoutesLayout() {
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="MyOrders" options={{ headerShown: false }} />
+      <Stack.Screen name="OrderDetails" options={{ headerShown: false }} />
+      <Stack.Screen name="CakeDetails" options={{ headerShown: false }} />
     </Stack>
   );
 }
