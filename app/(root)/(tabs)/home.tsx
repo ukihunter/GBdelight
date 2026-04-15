@@ -68,6 +68,19 @@ const Home = () => {
     refetch,
   } = useFetch<DatabaseCake[]>("/cakes");
 
+  // Fetch advertisements from database
+  type Advertisement = {
+    id: number;
+    cake_code: string;
+    title: string;
+    image_path: string;
+    is_active: boolean;
+    created_at: string;
+  };
+
+  const { data: adsData, loading: adsLoading } =
+    useFetch<Advertisement[]>("/advertisements");
+
   // Handle pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -205,11 +218,16 @@ const Home = () => {
   };
 
   const width = Dimensions.get("window").width;
-  const ads = [
-    { id: 1, image: require("../../../assets/add/add1.png") }, // local image
-    { id: 2, image: require("../../../assets/add/add2.jpg") }, // remote image
-    { id: 3, image: require("../../../assets/add/add3.png") }, // remote image
-  ];
+
+  // Use advertisements from database, fallback to empty array while loading
+  const ads =
+    adsData && adsData.length > 0
+      ? adsData.map((ad) => ({
+          id: ad.id,
+          image: ad.image_path,
+          title: ad.title,
+        }))
+      : [];
 
   return (
     <>
@@ -339,42 +357,56 @@ const Home = () => {
               </View>
 
               <View style={{ paddingHorizontal: 20 }}>
-                <Carousel
-                  loop
-                  width={width}
-                  height={200}
-                  autoPlay={true}
-                  autoPlayInterval={3000}
-                  data={ads}
-                  scrollAnimationDuration={1000}
-                  renderItem={({ item }) => (
-                    <View
-                      style={{
-                        justifyContent: "center",
-                        alignItems: "center",
-                        backgroundColor: "#eee",
-                        marginVertical: 50,
-                        height: 90,
-                        width: width - 60,
-                        marginRight: 30,
-                      }}
-                    >
-                      <Image
-                        source={
-                          typeof item.image === "string"
-                            ? { uri: item.image }
-                            : item.image
-                        }
+                {adsLoading && ads.length === 0 ? (
+                  <View
+                    style={{
+                      backgroundColor: "#eee",
+                      marginVertical: 50,
+                      height: 180,
+                      width: width - 60,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: 10,
+                    }}
+                  >
+                    <ActivityIndicator size="large" color="#ff728a" />
+                  </View>
+                ) : ads.length > 0 ? (
+                  <Carousel
+                    loop
+                    width={width}
+                    height={200}
+                    autoPlay={true}
+                    autoPlayInterval={3000}
+                    data={ads}
+                    scrollAnimationDuration={1000}
+                    renderItem={({ item }) => (
+                      <View
                         style={{
-                          width: width - 40,
-                          height: 180,
-                          resizeMode: "cover",
-                          borderRadius: 10,
+                          justifyContent: "center",
+                          alignItems: "center",
+                          backgroundColor: "#eee",
+                          marginVertical: 50,
+                          height: 90,
+                          width: width - 60,
+                          marginRight: 30,
                         }}
-                      />
-                    </View>
-                  )}
-                />
+                      >
+                        <Image
+                          source={{
+                            uri: item.image,
+                          }}
+                          style={{
+                            width: width - 40,
+                            height: 180,
+                            resizeMode: "cover",
+                            borderRadius: 10,
+                          }}
+                        />
+                      </View>
+                    )}
+                  />
+                ) : null}
               </View>
 
               <Text className="text-l font-JakartaBold mt-2 ml-2 mb-2">
