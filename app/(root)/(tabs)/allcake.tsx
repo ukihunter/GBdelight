@@ -68,7 +68,7 @@ const AllCake = () => {
   const userEmail = user?.emailAddresses?.[0]?.emailAddress;
   const { data: favData, refetch: refetchFavorites } = useFetch<{
     favorites: string[];
-  }>(userEmail ? `/(api)/favorites?email=${userEmail}` : "");
+  }>(userEmail ? `/favorites?email=${userEmail}` : "");
 
   const [favoriteCodes, setFavoriteCodes] = useState<string[]>([]);
 
@@ -83,7 +83,7 @@ const AllCake = () => {
     if (isSignedIn && user) {
       const syncUser = async () => {
         try {
-          await fetchAPI("/(api)/user", {
+          await fetchAPI("/user", {
             method: "POST",
             body: JSON.stringify({
               name: user.username || user.firstName || user.emailAddresses[0].emailAddress.split('@')[0],
@@ -108,7 +108,7 @@ const AllCake = () => {
     }
 
     try {
-      const result = await fetchAPI("/(api)/favorites", {
+      const result = await fetchAPI("/favorites", {
         method: "POST",
         body: JSON.stringify({
           userEmail,

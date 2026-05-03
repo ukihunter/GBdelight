@@ -86,7 +86,7 @@ const Home = () => {
   const userEmail = user?.emailAddresses?.[0]?.emailAddress;
   const { data: favData, refetch: refetchFavorites } = useFetch<{
     favorites: string[];
-  }>(userEmail ? `/(api)/favorites?email=${userEmail}` : "");
+  }>(userEmail ? `/favorites?email=${userEmail}` : "");
 
   const [favoriteCodes, setFavoriteCodes] = useState<string[]>([]);
 
@@ -101,7 +101,7 @@ const Home = () => {
     if (isLoaded && isSignedIn && user) {
       const syncUser = async () => {
         try {
-          await fetchAPI("/(api)/user", {
+          await fetchAPI("/user", {
             method: "POST",
             body: JSON.stringify({
               name: user.username || user.firstName || user.emailAddresses[0].emailAddress.split('@')[0],
@@ -136,7 +136,7 @@ const Home = () => {
     }
 
     try {
-      const result = await fetchAPI("/(api)/favorites", {
+      const result = await fetchAPI("/favorites", {
         method: "POST",
         body: JSON.stringify({
           userEmail,
@@ -259,7 +259,7 @@ const Home = () => {
   // Save order to database after payment
   const saveOrder = async (paymentIntentId: string) => {
     try {
-      const response = await fetch("/(api)/orders", {
+      const response = await fetch("/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

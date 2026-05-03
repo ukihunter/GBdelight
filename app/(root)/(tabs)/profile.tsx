@@ -1,21 +1,22 @@
 import { useFetch } from "@/lib/fetch";
-import { useUser } from "@clerk/clerk-expo";
+import { useAuth, useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 const Profile = () => {
   const { isLoaded, user } = useUser();
+  const { signOut } = useAuth();
   const router = useRouter();
 
   const userEmail = user?.emailAddresses?.[0]?.emailAddress;
 
   const { data: recentOrders } = useFetch<any[]>(
-    userEmail ? `/(api)/orders?email=${userEmail}` : "",
+    userEmail ? `/orders?email=${userEmail}` : "",
   );
 
   const { data: favData } = useFetch<{ favorites: string[] }>(
-    userEmail ? `/(api)/favorites?email=${userEmail}` : "",
+    userEmail ? `/favorites?email=${userEmail}` : "",
   );
 
   const orderCount = recentOrders?.length || 0;
@@ -25,9 +26,13 @@ const Profile = () => {
     router.push("/(root)/MyOrders");
   };
 
-  const handleSettings = () => {
-    // Handle Settings navigation
-    console.log("Navigate to Settings");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.replace("/(auth)/sign-in");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   if (!isLoaded) {
@@ -130,24 +135,24 @@ const Profile = () => {
           />
         </TouchableOpacity>
 
-        {/* Settings */}
+        {/* Logout */}
         <TouchableOpacity
           className="flex-row items-center justify-between bg-white py-4 px-4 rounded-xl shadow-sm shadow-black/8"
-          onPress={handleSettings}
+          onPress={handleLogout}
           activeOpacity={0.7}
         >
           <View className="flex-row items-center flex-1">
             <Image
-              source={require("../../../assets/icons/dollar.png")}
+              source={require("../../../assets/icons/out.png")}
               className="w-6 h-6 mr-3"
               tintColor="#FF6B6B"
             />
             <View className="flex-1">
               <Text className="text-base font-JakartaBold text-black mb-0.5">
-                Settings
+                Logout
               </Text>
               <Text className="text-xs text-gray-400 font-JakartaMedium">
-                Manage your preferences
+                Sign out of your account
               </Text>
             </View>
           </View>
