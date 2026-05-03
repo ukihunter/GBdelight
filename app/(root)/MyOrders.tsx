@@ -9,6 +9,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { showMessage } from "react-native-flash-message";
+import ConfirmDetailsModal from "../../components/ConfirmDetailsModal";
+import PaymentDetailsModal from "../../components/PaymentDetailsModal";
 
 interface Order {
   id: number;
@@ -48,6 +51,20 @@ const MyOrders = () => {
   const [aiOrders, setAIOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Payment states
+  const [paymentVisible, setPaymentVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [selectedAIRequest, setSelectedAIRequest] = useState<AIRequest | null>(
+    null,
+  );
+  const [userDetails, setUserDetails] = useState<{
+    name: string;
+    address: string;
+    postalCode: string;
+    nearestTown: string;
+    mobile: string;
+  } | null>(null);
 
   // Get status color helper
   const getStatusColor = (status: string): string => {
@@ -113,17 +130,12 @@ const MyOrders = () => {
         }
         const aiData = await aiResponse.json();
 
-        // Separate normal orders and AI orders
-        const normalOrders = (ordersData.data || []).filter(
-          (o: Order) => o.order_type === "normal",
-        );
-        const purchasedAIOrders = (ordersData.data || []).filter(
-          (o: Order) => o.order_type === "ai",
-        );
-
-        setOrders(normalOrders);
-        setAIOrders(purchasedAIOrders);
+        // All orders (normal + AI) should show in the Orders tab
+        const allOrders = ordersData.data || [];
+        
+        setOrders(allOrders);
         setAIRequests(aiData.data || []);
+        setAIOrders([]); // No longer needed as a separate state for the AI tab
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load orders");
         console.error("Error fetching data:", err);
@@ -134,6 +146,67 @@ const MyOrders = () => {
 
     fetchData();
   }, [isLoaded, user]);
+
+  const saveAIOrder = async (paymentIntentId: string) => {
+    if (!selectedAIRequest || !userDetails) return;
+
+    try {
+      const response = await fetch("/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: paymentIntentId,
+          customer_name: userDetails.name,
+          customer_email:
+            user?.emailAddresses?.[0]?.emailAddress ?? "guest@example.com",
+          customer_phone: userDetails.mobile,
+          delivery_address: {
+            address: userDetails.address,
+            postalCode: userDetails.postalCode,
+            nearestTown: userDetails.nearestTown,
+          },
+          items: [
+            {
+              id: `ai-${selectedAIRequest.id}`,
+              name: "AI Generated Cake Design",
+              price: selectedAIRequest.price_lkr,
+              quantity: 1,
+              description: selectedAIRequest.generated_description,
+              image_url: selectedAIRequest.generated_image_path,
+            },
+          ],
+          total_amount: selectedAIRequest.price_lkr,
+          order_type: "ai",
+          status: "paid",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save AI order: ${response.status}`);
+      }
+
+      // Update the AI request status in the DB
+      // Note: This assumes there's an endpoint to update AI request status
+      // If not, we just rely on the order existing in the orders table
+      try {
+        await fetch("/ai-cake-design", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: selectedAIRequest.id,
+            status: "purchased",
+          }),
+        });
+      } catch (e) {
+        console.warn("Failed to update AI request status:", e);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving AI order:", error);
+      throw error;
+    }
+  };
 
   const renderOrderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity
@@ -161,6 +234,13 @@ const MyOrders = () => {
               Payment: {item.status}
             </Text>
           </View>
+          {item.order_type === "ai" && (
+            <View className="bg-purple-100 px-2 py-1 rounded-full">
+              <Text className="text-purple-600 text-[10px] font-JakartaBold uppercase">
+                AI Order
+              </Text>
+            </View>
+          )}
           {item.cake_status && (
             <View
               style={{
@@ -259,7 +339,23 @@ const MyOrders = () => {
         </Text>
       )}
 
-      <View className="flex-row justify-end items-center pt-2 border-t border-gray-100">
+      <View className="flex-row justify-between items-center pt-2 border-t border-gray-100">
+        {item.status.toLowerCase() === "accepted" &&
+          item.price_lkr &&
+          item.status.toLowerCase() !== "purchased" && (
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedAIRequest(item);
+              setPaymentVisible(true);
+            }}
+            className="bg-red-400 px-4 py-2 rounded-lg"
+          >
+            <Text className="text-white font-JakartaBold text-xs">
+              Pay & Order Now
+            </Text>
+          </TouchableOpacity>
+        )}
+        <View className="flex-1" />
         <TouchableOpacity
           onPress={() => {
             router.push({
@@ -309,6 +405,11 @@ const MyOrders = () => {
               className="text-xs font-JakartaBold capitalize"
             >
               Payment: {item.status}
+            </Text>
+          </View>
+          <View className="bg-purple-100 px-2 py-1 rounded-full">
+            <Text className="text-purple-600 text-[10px] font-JakartaBold uppercase">
+              AI Order
             </Text>
           </View>
           {item.cake_status && (
@@ -454,27 +555,14 @@ const MyOrders = () => {
       ) : (
         <FlatList
           data={
-            aiRequests.length > 0 || aiOrders.length > 0
-              ? [
-                  ...aiRequests.map((r) => ({ ...r, _type: "request" })),
-                  ...aiOrders.map((o) => ({ ...o, _type: "order" })),
-                ]
+            aiRequests.length > 0
+              ? aiRequests.map((r) => ({ ...r, _type: "request" }))
               : []
           }
           renderItem={({ item }: any) => {
-            if (item._type === "request") {
-              return renderAIRequestItem({ item: item as AIRequest });
-            } else {
-              return renderAIOrderItem({ item: item as Order });
-            }
+            return renderAIRequestItem({ item: item as AIRequest });
           }}
-          keyExtractor={(item, index) => {
-            if (item._type === "request") {
-              return `req-${item.id}`;
-            } else {
-              return `order-${item.id}`;
-            }
-          }}
+          keyExtractor={(item) => `req-${item.id}`}
           className="px-4 py-4"
           contentContainerStyle={{ paddingBottom: 20 }}
           ListEmptyComponent={
@@ -484,6 +572,66 @@ const MyOrders = () => {
               </Text>
             </View>
           }
+        />
+      )}
+
+      {/* Payment Modals for AI Requests */}
+      <PaymentDetailsModal
+        visible={paymentVisible}
+        onClose={() => setPaymentVisible(false)}
+        onSubmit={(details) => {
+          setUserDetails(details);
+          setPaymentVisible(false);
+          setConfirmVisible(true);
+        }}
+      />
+
+      {userDetails && selectedAIRequest && (
+        <ConfirmDetailsModal
+          visible={confirmVisible}
+          details={userDetails}
+          totalAmount={selectedAIRequest.price_lkr}
+          onConfirm={() => {
+            // This is for free orders, but AI orders should have a price
+            setConfirmVisible(false);
+            setUserDetails(null);
+            setSelectedAIRequest(null);
+          }}
+          onEdit={() => {
+            setConfirmVisible(false);
+            setPaymentVisible(true);
+          }}
+          onPaymentSuccess={(paymentIntentId) => {
+            saveAIOrder(paymentIntentId)
+              .then(() => {
+                setConfirmVisible(false);
+                setPaymentVisible(false);
+                setUserDetails(null);
+                setSelectedAIRequest(null);
+
+                showMessage({
+                  message: "AI Order Placed! ",
+                  description:
+                    "Your AI cake design order has been placed successfully!",
+                  type: "success",
+                  backgroundColor: "#4CAF50",
+                  color: "#fff",
+                  icon: "success",
+                  duration: 4000,
+                });
+
+                // Refresh the data
+                router.replace("/MyOrders");
+              })
+              .catch((error) => {
+                console.error("Order save failed:", error);
+                showMessage({
+                  message: "Order Error",
+                  description: "Failed to save your order. Please contact support.",
+                  type: "danger",
+                });
+              });
+          }}
         />
       )}
     </View>

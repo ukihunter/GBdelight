@@ -129,16 +129,25 @@ const OrderDetails = () => {
               ? `AI Design #${order.id}`
               : `Order #${order.id}`}
           </Text>
-          <View
-            style={{ backgroundColor: getStatusColor(order.status) + "15" }}
-            className="px-3 py-1.5 rounded-full"
-          >
-            <Text
-              style={{ color: getStatusColor(order.status) }}
-              className="text-xs font-JakartaBold capitalize"
+          <View className="flex-row items-center gap-2">
+            <View
+              style={{ backgroundColor: getStatusColor(order.status) + "15" }}
+              className="px-3 py-1.5 rounded-full"
             >
-              {order.status}
-            </Text>
+              <Text
+                style={{ color: getStatusColor(order.status) }}
+                className="text-xs font-JakartaBold capitalize"
+              >
+                {order.status}
+              </Text>
+            </View>
+            {isOrder(order) && order.order_type === "ai" && (
+              <View className="bg-purple-100 px-3 py-1.5 rounded-full">
+                <Text className="text-purple-600 text-xs font-JakartaBold uppercase">
+                  AI Order
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>

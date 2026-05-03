@@ -14,6 +14,8 @@ CREATE TABLE orders (
     delivery_address JSONB NOT NULL,
     items JSONB NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'paid',
+    cake_status VARCHAR(50) DEFAULT 'pending',
+    order_type VARCHAR(50) DEFAULT 'normal',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

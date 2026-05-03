@@ -226,3 +226,39 @@ export async function GET(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const sql = neon(process.env.DATABASE_URL!);
+    const { id, status } = await request.json();
+
+    if (!id || !status) {
+      return Response.json(
+        { error: "Missing required fields: id, status" },
+        { status: 400 },
+      );
+    }
+
+    const result = await sql`
+      UPDATE ai_cake_design_requests
+      SET status = ${status}
+      WHERE id = ${id}
+      RETURNING *;
+    `;
+
+    if (result.length === 0) {
+      return Response.json({ error: "Request not found" }, { status: 404 });
+    }
+
+    return Response.json({
+      success: true,
+      data: result[0],
+    });
+  } catch (error) {
+    console.error("AI cake design update error:", error);
+    return Response.json(
+      { error: error instanceof Error ? error.message : "An error occurred" },
+      { status: 500 },
+    );
+  }
+}
