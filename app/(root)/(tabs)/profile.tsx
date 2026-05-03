@@ -1,3 +1,4 @@
+import { useFetch } from "@/lib/fetch";
 import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -6,6 +7,19 @@ import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 const Profile = () => {
   const { isLoaded, user } = useUser();
   const router = useRouter();
+
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress;
+
+  const { data: recentOrders } = useFetch<any[]>(
+    userEmail ? `/(api)/orders?email=${userEmail}` : "",
+  );
+
+  const { data: favData } = useFetch<{ favorites: string[] }>(
+    userEmail ? `/(api)/favorites?email=${userEmail}` : "",
+  );
+
+  const orderCount = recentOrders?.length || 0;
+  const favoriteCount = favData?.favorites?.length || 0;
 
   const handleMyOrders = () => {
     router.push("/(root)/MyOrders");
@@ -35,7 +49,9 @@ const Profile = () => {
           {/* Profile Header */}
           <View className="flex-row items-center mb-5">
             <Image
-              source={{ uri: "https://api.dicebear.com/9.x/open-peeps/png" }}
+              source={{
+                uri: "https://api.dicebear.com/9.x/dylan/png",
+              }}
               style={{
                 width: 80,
                 height: 80,
@@ -64,7 +80,7 @@ const Profile = () => {
           <View className="flex-row justify-around pt-5 border-t border-gray-200">
             <View className="items-center flex-1">
               <Text className="text-base font-JakartaBold text-red-400">
-                12
+                {orderCount}
               </Text>
               <Text className="text-xs text-gray-600 mt-1 font-JakartaMedium">
                 Orders
@@ -72,18 +88,14 @@ const Profile = () => {
             </View>
             <View className="w-0.5 bg-gray-200" />
             <View className="items-center flex-1">
-              <Text className="text-base font-JakartaBold text-red-400">5</Text>
+              <Text className="text-base font-JakartaBold text-red-400">
+                {favoriteCount}
+              </Text>
               <Text className="text-xs text-gray-600 mt-1 font-JakartaMedium">
                 Favorites
               </Text>
             </View>
             <View className="w-0.5 bg-gray-200" />
-            <View className="items-center flex-1">
-              <Text className="text-base font-JakartaBold text-red-400">3</Text>
-              <Text className="text-xs text-gray-600 mt-1 font-JakartaMedium">
-                Addresses
-              </Text>
-            </View>
           </View>
         </View>
       </View>

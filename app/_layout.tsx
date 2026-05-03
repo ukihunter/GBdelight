@@ -1,4 +1,4 @@
-﻿import { ClerkProvider } from "@clerk/clerk-expo";
+import { ClerkProvider } from "@clerk/clerk-expo";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import FlashMessage from "react-native-flash-message";
@@ -37,8 +37,6 @@ export default function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <StripeProvider>
-        <FlashMessage floating={true} />
-
         <CartProvider>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -46,6 +44,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack>
         </CartProvider>
+        <FlashMessage position="top" floating={true} hideStatusBar={false} />
       </StripeProvider>
     </ClerkProvider>
   );

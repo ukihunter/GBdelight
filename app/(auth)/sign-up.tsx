@@ -94,24 +94,40 @@ const Signup = () => {
       });
 
       if (signUpAttempt.status === "complete") {
-        await fetchAPI("/(api)/user", {
-          method: "POST",
-          body: JSON.stringify({
-            name: Form.name,
-            email: Form.email,
-            clerkId: signUpAttempt.createdUserId,
-          }),
-        });
+        try {
+          // Save user data to database
+          const dbResponse = await fetchAPI("/(api)/user", {
+            method: "POST",
+            body: JSON.stringify({
+              name: Form.name,
+              email: Form.email,
+              clerkId: signUpAttempt.createdUserId,
+            }),
+          });
 
-        setverification((prev) => ({
-          ...prev,
-          state: "success",
-          error: "",
-          sessionId: signUpAttempt.createdSessionId,
-        }));
+          // Show success modal immediately
+          setshowsuccessModal(true);
 
-        // Show success modal immediately
-        setshowsuccessModal(true);
+          setverification((prev) => ({
+            ...prev,
+            state: "success",
+            error: "",
+            sessionId: signUpAttempt.createdSessionId,
+          }));
+        } catch (dbError: any) {
+          console.error("Database save error:", dbError);
+          showMessage({
+            message:
+              "Account created but failed to sync data. Please contact support.",
+            type: "warning",
+            position: "top",
+          });
+          setverification((prev) => ({
+            ...prev,
+            state: "failed",
+            error: "Failed to save user data",
+          }));
+        }
       } else {
         setverification((prev) => ({
           ...prev,

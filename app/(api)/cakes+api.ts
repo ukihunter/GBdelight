@@ -2,7 +2,9 @@ import { neon } from "@neondatabase/serverless";
 
 export async function GET(request: Request) {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const dbUrl = process.env.EXPO_PUBLIC_DATABASE_URL || process.env.DATABASE_URL;
+    if (!dbUrl) throw new Error("Database URL not configured");
+    const sql = neon(dbUrl);
 
     const cakes = await sql`
       SELECT 

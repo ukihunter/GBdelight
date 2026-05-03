@@ -1,11 +1,12 @@
 import GoogleTextInput from "@/components/GoogleTextInput";
 import { icons } from "@/constants";
-import { useFetch } from "@/lib/fetch";
+import { fetchAPI, useFetch } from "@/lib/fetch";
 import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -81,11 +82,90 @@ const Home = () => {
   const { data: adsData, loading: adsLoading } =
     useFetch<Advertisement[]>("/advertisements");
 
+  // Add fetch for user favorites
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress;
+  const { data: favData, refetch: refetchFavorites } = useFetch<{
+    favorites: string[];
+  }>(userEmail ? `/(api)/favorites?email=${userEmail}` : "");
+
+  const [favoriteCodes, setFavoriteCodes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (favData && favData.favorites) {
+      setFavoriteCodes(favData.favorites);
+    }
+  }, [favData]);
+
+  // Sync user with database to ensure they exist for favorites/orders
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      const syncUser = async () => {
+        try {
+          await fetchAPI("/(api)/user", {
+            method: "POST",
+            body: JSON.stringify({
+              name: user.username || user.firstName || user.emailAddresses[0].emailAddress.split('@')[0],
+              email: user.emailAddresses[0].emailAddress,
+              clerkId: user.id,
+            }),
+          });
+        } catch (error) {
+          console.error("User sync error:", error);
+        }
+      };
+      syncUser();
+    }
+  }, [isLoaded, isSignedIn, user]);
+
   // Handle pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchFavorites && refetchFavorites()]);
     setRefreshing(false);
+  };
+
+  const handleToggleFavorite = async (cakeCode: string | undefined) => {
+    if (!cakeCode) return;
+
+    if (!isSignedIn) {
+      showMessage({
+        message: "Please sign in to save favorites",
+        type: "warning",
+      });
+      return;
+    }
+
+    try {
+      const result = await fetchAPI("/(api)/favorites", {
+        method: "POST",
+        body: JSON.stringify({
+          userEmail,
+          cakeCode,
+          clerkId: user?.id,
+          name: user?.username || user?.firstName || "User",
+        }),
+      });
+
+      // Update local state for immediate feedback
+      setFavoriteCodes((prev) =>
+        result.action === "added"
+          ? [...(prev || []), cakeCode]
+          : (prev || []).filter((c) => c !== cakeCode),
+      );
+
+      showMessage({
+        message: result.message,
+        type: "success",
+        icon: "success",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error(error);
+      showMessage({
+        message: "Failed to update favorite",
+        type: "danger",
+      });
+    }
   };
 
   // Map database category to UI category keys
@@ -490,6 +570,57 @@ const Home = () => {
                             })
                           }
                         >
+                          <TouchableOpacity
+                            style={{
+                              position: "absolute",
+                              top: 10,
+                              right: 10,
+                              zIndex: 10,
+                              backgroundColor: "rgba(255,255,255,0.7)",
+                              borderRadius: 15,
+                              padding: 5,
+                            }}
+                            onPress={() =>
+                              handleToggleFavorite(product.cake_code)
+                            }
+                          >
+                            <View>
+                              <Image
+                                source={
+                                  product.cake_code &&
+                                  favoriteCodes.includes(product.cake_code)
+                                    ? icons.favorites // Active heart icon
+                                    : icons.favourite // Outline heart icon
+                                }
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  tintColor:
+                                    product.cake_code &&
+                                    favoriteCodes.includes(product.cake_code)
+                                      ? "#ff4d6d"
+                                      : "#ccc",
+                                }}
+                              />
+                              {product.cake_code && favoriteCodes.includes(product.cake_code) && (
+                                <View
+                                  style={{
+                                    position: "absolute",
+                                    top: -8,
+                                    right: -8,
+                                    backgroundColor: "#ff4d6d",
+                                    borderRadius: 10,
+                                    width: 14,
+                                    height: 14,
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Text style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>+</Text>
+                                </View>
+                              )}
+                            </View>
+                          </TouchableOpacity>
                           <View>
                             <Image
                               source={product.image}
@@ -542,33 +673,7 @@ const Home = () => {
                           </View>
 
                           {/* Add a small heart icon for favorites */}
-                          <TouchableOpacity
-                            style={{
-                              position: "absolute",
-                              top: 12,
-                              right: 12,
-                              backgroundColor: "#ffffff",
-                              borderRadius: 15,
-                              width: 30,
-                              height: 30,
-                              justifyContent: "center",
-                              alignItems: "center",
-                              shadowColor: "#000",
-                              shadowOffset: { width: 0, height: 2 },
-                              shadowOpacity: 0.1,
-                              shadowRadius: 4,
-                              elevation: 3,
-                            }}
-                          >
-                            <Image
-                              source={icons.heart}
-                              style={{
-                                width: 16,
-                                height: 16,
-                                tintColor: "brown",
-                              }}
-                            />
-                          </TouchableOpacity>
+
                         </TouchableOpacity>
                       ))}
                     </View>

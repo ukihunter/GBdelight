@@ -78,6 +78,8 @@ export const icons = {
   to,
   cart,
   heart,
+  favorites: heart,
+  favourite: heart,
   bottomtoup,
 };
 

@@ -1,5 +1,6 @@
 import { icons } from "@/constants";
-import { useFetch } from "@/lib/fetch";
+import { fetchAPI, useFetch } from "@/lib/fetch";
+import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { showMessage } from "react-native-flash-message";
 import { categories } from "../../../constants/categoriesData";
 
 type DatabaseCake = {
@@ -58,8 +60,87 @@ const AllCake = () => {
   // Handle pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refetchFavorites && refetchFavorites()]);
     setRefreshing(false);
+  };
+
+  const { isSignedIn, user } = useUser();
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress;
+  const { data: favData, refetch: refetchFavorites } = useFetch<{
+    favorites: string[];
+  }>(userEmail ? `/(api)/favorites?email=${userEmail}` : "");
+
+  const [favoriteCodes, setFavoriteCodes] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (favData && favData.favorites) {
+      setFavoriteCodes(favData.favorites);
+    }
+  }, [favData]);
+
+  // Sync user with database
+  useEffect(() => {
+    if (isSignedIn && user) {
+      const syncUser = async () => {
+        try {
+          await fetchAPI("/(api)/user", {
+            method: "POST",
+            body: JSON.stringify({
+              name: user.username || user.firstName || user.emailAddresses[0].emailAddress.split('@')[0],
+              email: user.emailAddresses[0].emailAddress,
+              clerkId: user.id,
+            }),
+          });
+        } catch (error) {
+          console.error("User sync error:", error);
+        }
+      };
+      syncUser();
+    }
+  }, [isSignedIn, user]);
+
+  const handleToggleFavorite = async (cakeCode: string | undefined) => {
+    if (!cakeCode) return;
+
+    if (!isSignedIn) {
+      // you could show a message here if needed
+      return;
+    }
+
+    try {
+      const result = await fetchAPI("/(api)/favorites", {
+        method: "POST",
+        body: JSON.stringify({
+          userEmail,
+          cakeCode,
+          clerkId: user?.id,
+          name: user?.username || user?.firstName || "User",
+        }),
+      });
+
+      // Update local state for immediate feedback
+      const action = result.action === "added" ? "added" : "removed";
+      setFavoriteCodes((prev) =>
+        action === "added"
+          ? [...(prev || []), cakeCode]
+          : (prev || []).filter((c) => c !== cakeCode),
+      );
+
+      showMessage({
+        message: action === "added" ? "Added to Favorites" : "Removed from Favorites",
+        type: action === "added" ? "success" : "info",
+        backgroundColor: action === "added" ? "#ff4d6d" : "#666",
+        icon: action === "added" ? "success" : "none",
+      });
+    } catch (error) {
+      console.error(error);
+      showMessage({
+        message: "Error",
+        description: "Failed to update favorites. Please check your connection.",
+        type: "danger",
+        backgroundColor: "#ff6b6b",
+      });
+    }
   };
 
   // Debug logging
@@ -231,6 +312,55 @@ const AllCake = () => {
                   })
                 }
               >
+                <TouchableOpacity
+                  style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    zIndex: 10,
+                    backgroundColor: "rgba(255,255,255,0.7)",
+                    borderRadius: 15,
+                    padding: 5,
+                  }}
+                  onPress={() => handleToggleFavorite(product.cake_code)}
+                >
+                  <View>
+                    <Image
+                      source={
+                        product.cake_code &&
+                        favoriteCodes.includes(product.cake_code)
+                          ? icons.favorites // Active heart icon
+                          : icons.favourite // Outline heart icon
+                      }
+                      style={{
+                        width: 20,
+                        height: 20,
+                        tintColor:
+                          product.cake_code &&
+                          favoriteCodes.includes(product.cake_code)
+                            ? "#ff4d6d" // A more vibrant red
+                            : "#ccc",   // Gray for inactive
+                      }}
+                    />
+                    {product.cake_code && favoriteCodes.includes(product.cake_code) && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: -8,
+                          right: -8,
+                          backgroundColor: "#ff4d6d",
+                          borderRadius: 10,
+                          width: 14,
+                          height: 14,
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>+</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
                 <View>
                   <Image
                     source={product.image}
@@ -276,33 +406,7 @@ const AllCake = () => {
                     LKR {product.price.toFixed(2)}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={{
-                    position: "absolute",
-                    top: 12,
-                    right: 12,
-                    backgroundColor: "#ffffff",
-                    borderRadius: 15,
-                    width: 30,
-                    height: 30,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3,
-                  }}
-                >
-                  <Image
-                    source={icons.heart}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      tintColor: "brown",
-                    }}
-                  />
-                </TouchableOpacity>
+
               </TouchableOpacity>
             )}
             ListFooterComponent={
